@@ -1,0 +1,1 @@
+mul(2,4) don't() mul(3,5) do() mul(6,7) mul(1,2) don't() mul(8,9) do() mul(10,10)
