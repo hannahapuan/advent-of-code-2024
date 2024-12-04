@@ -6,60 +6,50 @@ import (
 	"os"
 )
 
-// TODO: either something wrong with the calculation of the adj cells or the tracking through them in the sols
+// Constants
 const (
-	filename    string = "example.txt" // Name of the input file
-	solution    string = "XMAS"        // Target solution to find
-	newlineRune        = '\n'          // Newline character
+	filename string = "input.txt" // Name of the input file
+	solution string = "XMAS"      // Target solution to find
 )
 
+// Possible movement directions for adjacency search
 var (
-	rSol       []rune = []rune(solution) // Solution as a slice of runes
-	directions        = []direction{     // Directions for adjacency search
+	directions = []direction{
 		{-1, -1}, // Top-left
-		{-1, 1},  // Top-right
-		{1, -1},  // Bottom-left
-		{1, 1},   // Bottom-right
 		{-1, 0},  // Top
+		{-1, 1},  // Top-right
 		{0, -1},  // Left
-		{1, 0},   // Bottom
 		{0, 1},   // Right
+		{1, -1},  // Bottom-left
+		{1, 0},   // Bottom
+		{1, 1},   // Bottom-right
 	}
 )
 
-// cell represents a position in the puzzle with x, y coordinates and a rune value
+// Represents a cell in the grid with its coordinates and rune value
 type cell struct {
-	x   int
-	y   int
-	val rune
+	x, y int
+	val  rune
 }
 
-// direction represents a movement in the grid
-type direction struct {
-	dx, dy int
-}
-
+// Main function
 func main() {
 	// Read the puzzle grid from the input file
 	puzzle := readInput(filename)
 
-	// Generate a map of cells and their adjacent cells by rune and direction
-	cellsToAdjCells := genCellToAdjCellsMap(puzzle)
+	// Find all paths in the grid that match the target solution
+	solutions := findSolutions(puzzle, "XMAS")
 
-	// Print the adjacency map for debugging purposes
-	printCellToAdjCellsMap(cellsToAdjCells)
-
-	// Find and print all solutions
-	fmt.Println()
-	fmt.Println(findSols(cellsToAdjCells))
-	fmt.Println(len(findSols(cellsToAdjCells)))
+	// Print the number of solutions found
+	fmt.Println(len(solutions))
 }
 
 // readInput reads the puzzle grid from a file and returns a 2D slice of cells
 func readInput(fname string) [][]cell {
 	cells := make([][]cell, 0) // Initialize the 2D slice
 
-	file, err := os.Open(fname) // Open the file
+	// Open the file for reading
+	file, err := os.Open(fname)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		return nil
@@ -68,13 +58,13 @@ func readInput(fname string) [][]cell {
 
 	reader := bufio.NewReader(file) // Create a buffered reader
 
-	var i, j int           // Row and column indices
-	row := make([]cell, 0) // Current row of cells
+	var i, j int           // Column (i) and row (j) indices
+	row := make([]cell, 0) // Current row being read
 
 	for {
-		char, _, err := reader.ReadRune() // Read the next rune
+		char, _, err := reader.ReadRune() // Read the next rune from the file
 		if err != nil {
-			if err.Error() == "EOF" { // End of file
+			if err.Error() == "EOF" { // Handle end-of-file
 				if len(row) > 0 { // Append the last row if not empty
 					cells = append(cells, row)
 				}
@@ -85,7 +75,7 @@ func readInput(fname string) [][]cell {
 		}
 
 		if char == '\n' { // Handle newline
-			cells = append(cells, row) // Append completed row to cells
+			cells = append(cells, row) // Add the completed row to the grid
 			row = make([]cell, 0)      // Reset the row
 			j++                        // Increment row index
 			i = 0                      // Reset column index
@@ -103,153 +93,68 @@ func readInput(fname string) [][]cell {
 	return cells
 }
 
-// genCellToAdjCellsMap creates a map of runes to their adjacent cells by direction
-func genCellToAdjCellsMap(puzzle [][]cell) map[rune]map[direction][]cell {
-	cellToAdjCells := make(map[rune]map[direction][]cell)
+// findSolutions searches the grid for all paths that match the target solution
+func findSolutions(puzzle [][]cell, solution string) [][]cell {
+	var solutions [][]cell // List to store all matching paths
+
+	// Iterate over all cells in the grid
 	for i, row := range puzzle {
 		for j := range row {
-			ru := puzzle[i][j].val
-			if _, ok := cellToAdjCells[ru]; !ok {
-				cellToAdjCells[ru] = make(map[direction][]cell)
-			}
-			newAdjCells := populateAdjCells(i, j, puzzle)
-			for dir, cells := range newAdjCells {
-				cellToAdjCells[ru][dir] = append(cellToAdjCells[ru][dir], cells...)
-			}
-		}
-	}
-	return cellToAdjCells
-}
+			// Check if the current cell matches the first character of the solution
+			if puzzle[i][j].val == rune(solution[0]) {
+				var path []cell                   // Start a new path
+				path = append(path, puzzle[i][j]) // Add the current cell to the path
 
-// populateAdjCells finds all valid adjacent cells for a given cell in the puzzle
-func populateAdjCells(x, y int, puzzle [][]cell) map[direction][]cell {
-	adjCells := make(map[direction][]cell)
-	height := len(puzzle)      // Number of rows
-	width := len(puzzle[0])    // Number of columns
-	curVal := puzzle[x][y].val // Value of the current cell
-
-	// Iterate over all possible directions
-	for _, dir := range directions {
-		if inRange(x+dir.dx, y+dir.dy, width, height) {
-			for i, r := range rSol[:len(rSol)-1] { // Match against solution runes
-				if curVal == r {
-					adjCells = appendIfVal(puzzle[x+dir.dx][y+dir.dy], adjCells, dir, rSol[i+1])
+				// Explore all possible directions from this cell
+				for _, dir := range directions {
+					solutions = dfs(puzzle, i, j, solution[1:], path, dir, solutions)
 				}
 			}
 		}
 	}
-	return adjCells
-}
 
-// inRange checks if the given x, y coordinates are within the grid boundaries
-func inRange(x, y, width, height int) bool {
-	return x >= 0 && x < height && y >= 0 && y < width
-}
-
-// appendIfVal adds a cell to the map if it matches the desired next rune
-func appendIfVal(toInsert cell, cells map[direction][]cell, dir direction, desiredNextVal rune) map[direction][]cell {
-	if toInsert.val != desiredNextVal { // Skip if value doesn't match the desired rune
-		return cells
-	}
-	if _, ok := cells[dir]; !ok { // Initialize slice if it doesn't exist
-		cells[dir] = make([]cell, 0)
-	}
-	cells[dir] = append(cells[dir], toInsert) // Append the cell
-	return cells
-}
-
-// findSols finds all valid paths matching the solution in the puzzle
-func findSols(ctac map[rune]map[direction][]cell) [][]cell {
-	solutions := make([][]cell, 0)
-	path := make([]cell, 0)
-	desiredRuneIndex := 0
-	for _, dirSearching := range directions {
-		for desiredRuneIndex < len(rSol)-1 {
-			// fmt.Println("here")
-			// fmt.Printf("\tdesiredRuneIndex: %d\n", desiredRuneIndex)
-			// fmt.Printf("\tdesiredRune: %s\n", string(rSol[desiredRuneIndex]))
-			// fmt.Printf("\tdirSearching: %v\n", dirSearching)
-			desiredCells := ctac[rSol[desiredRuneIndex]][dirSearching]
-			ctac[rSol[desiredRuneIndex]][dirSearching] = deleteCell(desiredCells, 0)
-			// fmt.Printf("\tdesiredCells: %v\n", toString(desiredCells))
-
-			if len(desiredCells) == 0 || desiredRuneIndex == len(rSol)-1 {
-				break
-			}
-			for _, cell := range desiredCells {
-				if desiredRuneIndex == len(rSol)-1 {
-					// no solution found
-					break
-				}
-				if cell.val == rSol[desiredRuneIndex+1] {
-					path = append(path, cell)
-					desiredRuneIndex++
-				}
-			}
-		}
-		desiredRuneIndex = 0
-		solutions = append(solutions, path)
-		path = make([]cell, 0)
-	}
 	return solutions
 }
 
-func deleteCell(cs []cell, index int) []cell {
-	return append(cs[:index], cs[index+1:]...)
-}
+// dfs performs a depth-first search to find paths that match the solution
+func dfs(puzzle [][]cell, x, y int, remainingSolution string, path []cell, dir direction, solutions [][]cell) [][]cell {
+	// Base case: If there are no more characters to match, add the path to solutions
+	if len(remainingSolution) == 0 {
+		solutions = append(solutions, path)
+		return solutions
+	}
 
-// // searchPath recursively finds paths that match the solution
-// func searchPath(ctac map[rune]map[direction][]cell, current cell, index int, path []cell, solutions *[][]cell) bool {
-// 	if index == len(rSol) { // If the full solution is found
-// 		*solutions = append(*solutions, append([]cell(nil), path...))
-// 		return true
-// 	}
+	// Calculate the next cell's coordinates
+	nx, ny := x+dir.dx, y+dir.dy
 
-// 	nextRune := rSol[index]
-// 	for dir, adjCells := range ctac[current.val] { // Check adjacent cells
-// 		for _, adj := range adjCells {
-// 			if inRange(adj.x, adj.y, len(ctac), len(ctac[adj.val])) &&
-// 				adj.val == nextRune && dir.dx == adj.x-current.x && dir.dy == adj.y-current.y {
-// 				path = append(path, adj) // Add cell to path
-// 				if searchPath(ctac, adj, index+1, path, solutions) {
-// 					return true
-// 				}
-// 				path = path[:len(path)-1] // Backtrack
-// 			}
-// 		}
-// 	}
+	// Check if the next cell is within bounds
+	if nx >= 0 && nx < len(puzzle) && ny >= 0 && ny < len(puzzle[0]) {
+		// Check if the next cell matches the next character in the solution
+		// and if it hasn't already been visited in the current path
+		if puzzle[nx][ny].val == rune(remainingSolution[0]) && !contains(path, puzzle[nx][ny]) {
+			// Create a new path including the next cell
+			newPath := append([]cell{}, path...)
+			newPath = append(newPath, puzzle[nx][ny])
 
-// 	return false
-// }
-
-// printCellToAdjCellsMap prints the adjacency map for debugging
-func printCellToAdjCellsMap(ctac map[rune]map[direction][]cell) {
-	for r, v := range ctac {
-		fmt.Println(string(r))
-		for dir, cells := range v {
-			fmt.Printf("\t(%d, %d): %s\n", dir.dx, dir.dy, toString(cells))
+			// Recursively continue the search with the updated path and remaining solution
+			solutions = dfs(puzzle, nx, ny, remainingSolution[1:], newPath, dir, solutions)
 		}
 	}
+
+	return solutions
 }
 
-// toString converts a slice of cells to a slice of their rune values as strings
-func toString(c []cell) []string {
-	cs := make([]string, 0)
-	for _, v := range c {
-		cs = append(cs, string(v.val))
+// contains checks if a cell is already in the current path
+func contains(path []cell, c cell) bool {
+	for _, p := range path {
+		if p.x == c.x && p.y == c.y {
+			return true // Cell is already in the path
+		}
 	}
-	return cs
+	return false
 }
 
-func toCellsString(c []cell) []string {
-	cs := make([]string, 0)
-	for _, v := range c {
-		cs = append(cs, toCellString(v))
-	}
-	return cs
-}
-
-// toCellString formats a cell as a string with its coordinates and value
-func toCellString(c cell) string {
-	return fmt.Sprintf("(%d, %d): %s", c.x, c.y, string(c.val))
+// direction represents a movement in the grid
+type direction struct {
+	dx, dy int // Changes in x and y coordinates for the direction
 }
