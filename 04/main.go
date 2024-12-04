@@ -6,21 +6,24 @@ import (
 	"os"
 )
 
+// https://adventofcode.com/2024/day/4
+
+// Constants for input filename and solutions to find
 const (
-	filename        string = "example.txt" // Name of the input file
-	solution        string = "XMAS"        // Target solution to find
-	secondSolution0 string = "MAS"
-	secondSolution1 string = "SAM"
+	filename     string = "input.txt"
+	solutionXMAS string = "XMAS"
+	solutionMAS  string = "MAS"
+	solutionSAM  string = "SAM"
 )
 
-// direction represents a movement in the grid
+// direction represents movement in the grid
 type direction struct {
-	dx, dy int // Changes in x and y coordinates for the direction
+	dx, dy int // Change in x (columns) and y (rows)
 }
 
-// Possible movement directions for adjacency search
+// Movement directions for part 1 and part 2 of the puzzle
 var (
-	part1directions = []direction{
+	allDirections = []direction{
 		{-1, -1}, // Top-left
 		{-1, 0},  // Top
 		{-1, 1},  // Top-right
@@ -30,42 +33,43 @@ var (
 		{1, 0},   // Bottom
 		{1, 1},   // Bottom-right
 	}
-	part2directions = []direction{
+	diagonalDirections = []direction{
 		{-1, -1}, // Top-left
 		{-1, 1},  // Top-right
 	}
 )
 
-// Represents a cell in the grid with its coordinates and rune value
+// cell represents a single position in the grid with coordinates and value
 type cell struct {
 	x, y int
 	val  rune
 }
 
 func main() {
-	// Read the puzzle grid from the input file
+	// Read the puzzle grid from the file and display it
 	puzzle := readInput(filename)
 
-	// Part 1
-	// Find all paths in the grid that match the target solution
-	solutions1 := findSolutions(puzzle, solution, part1directions)
+	// Part 1: Find all occurrences of the word "XMAS" in the grid
+	solutions1 := findSolutions(puzzle, solutionXMAS, allDirections)
+	fmt.Println(len(solutions1)) // Print the number of solutions found
 
-	// Print the number of solutions found
-	fmt.Println(len(solutions1))
+	// Part 2: Find occurrences of "MAS" and "SAM" in diagonal directions
+	solutions2MAS := findSolutions(puzzle, solutionMAS, diagonalDirections)
+	solutions2SAM := findSolutions(puzzle, solutionSAM, diagonalDirections)
 
-	// Part 2
-	// find all instances of "MAS"
-	solutions2 := findSolutions(puzzle, secondSolution0, part2directions)
+	// Combine all solutions for part 2
+	solutions2 := append(solutions2MAS, solutions2SAM...)
 
-	// Print the number of solutions found
-	fmt.Println(len(solutions2))
-	fmt.Println(len(unionByMiddleVal(solutions2, solutions2)))
+	// Union solutions by their middle value
+	unioned := unionByMiddleVal(solutions2, solutions2)
 
+	// count valid groups - a valid group contains two unique solutions that contain the same middle cell
+	fmt.Println(countValid(unioned))
 }
 
-// readInput reads the puzzle grid from a file and returns a 2D slice of cells
+// readInput reads the grid from the file and converts it to a 2D slice of cells
 func readInput(fname string) [][]cell {
-	cells := make([][]cell, 0) // Initialize the 2D slice
+	cells := make([][]cell, 0)
 
 	file, err := os.Open(fname)
 	if err != nil {
@@ -75,16 +79,15 @@ func readInput(fname string) [][]cell {
 	defer file.Close()
 
 	reader := bufio.NewReader(file)
-
+	var row []cell
 	var i, j int
-	row := make([]cell, 0)
 
 	for {
 		char, _, err := reader.ReadRune()
 		if err != nil {
 			if err.Error() == "EOF" {
-				if len(row) > 0 { // Append the last row if not empty
-					cells = append(cells, row)
+				if len(row) > 0 {
+					cells = append(cells, row) // Append the last row
 				}
 				break
 			}
@@ -92,113 +95,152 @@ func readInput(fname string) [][]cell {
 			return nil
 		}
 
-		if char == '\n' { // Handle newline
+		if char == '\n' { // Handle newlines as row separators
 			cells = append(cells, row)
 			row = make([]cell, 0)
-			j++
+			j++ // Move to the next row
 			i = 0
 			continue
 		}
 
-		row = append(row, cell{
-			x:   i,
-			y:   j,
-			val: char,
-		})
+		// Add the character as a cell to the current row
+		row = append(row, cell{x: i, y: j, val: char})
 		i++
 	}
 	return cells
 }
 
-// //////////
-// Part 2 //
-// //////////
+// /////////////
+// Part 1 & 2 //
+// ////////// //
 
-// findSolutions searches the grid for all paths that match the target solution
+// findSolutions finds all paths in the grid that match the target word
 func findSolutions(puzzle [][]cell, solution string, validDirections []direction) [][]cell {
-	var solutions [][]cell // List to store all matching paths
+	var solutions [][]cell
 
 	// Iterate over all cells in the grid
 	for i, row := range puzzle {
 		for j := range row {
-			// Check if the current cell matches the first character of the solution
+			// If the cell matches the first character, start exploring paths
 			if puzzle[i][j].val == rune(solution[0]) {
-				var path []cell                   // Start a new path
-				path = append(path, puzzle[i][j]) // Add the current cell to the path
-
-				// Explore all possible directions from this cell
+				path := []cell{puzzle[i][j]} // Start a new path
 				for _, dir := range validDirections {
+					// Explore all paths in the specified directions
 					solutions = dfs(puzzle, i, j, solution[1:], path, dir, solutions)
 				}
 			}
 		}
 	}
-
 	return solutions
 }
 
-// dfs performs a recursive depth-first search to find paths that match the solution
+// dfs explores paths recursively to find matches for the target word
 func dfs(puzzle [][]cell, x, y int, remainingSolution string, path []cell, dir direction, solutions [][]cell) [][]cell {
-	// base case: If there are no more characters to match, add the path to solutions
+	// Base case: If no more characters to match, add the path to solutions
 	if len(remainingSolution) == 0 {
 		solutions = append(solutions, path)
 		return solutions
 	}
 
-	// next cell's coordinates
+	// Calculate the coordinates of the next cell in the current direction
 	nx, ny := x+dir.dx, y+dir.dy
 
-	if inBounds(nx, ny, puzzle) {
-		// check if the next cell matches the next character in the solution
-		// and if it hasn't already been visited in the current path
-		if puzzle[nx][ny].val == rune(remainingSolution[0]) && !visited(path, puzzle[nx][ny]) {
-			// Create a new path including the next cell
-			newPath := append([]cell{}, path...)
-			newPath = append(newPath, puzzle[nx][ny])
-
-			// recursive case: continue the search with the updated path and remaining solution
-			solutions = dfs(puzzle, nx, ny, remainingSolution[1:], newPath, dir, solutions)
-		}
+	// Check bounds and character match for the next cell
+	if inBounds(nx, ny, puzzle) && puzzle[nx][ny].val == rune(remainingSolution[0]) && !visited(path, puzzle[nx][ny]) {
+		newPath := append([]cell{}, path...)      // Create a new path
+		newPath = append(newPath, puzzle[nx][ny]) // Add the next cell
+		// Continue exploring with updated path and remaining solution
+		solutions = dfs(puzzle, nx, ny, remainingSolution[1:], newPath, dir, solutions)
 	}
-
 	return solutions
 }
 
-// inBounds checks if the next cell is within bounds
+// inBounds checks if a cell is within the grid's boundaries
 func inBounds(x, y int, puzzle [][]cell) bool {
 	return x >= 0 && x < len(puzzle) && y >= 0 && y < len(puzzle[0])
 }
 
-// visited checks if a cell is already in the current path
+// visited checks if a cell is already part of the current path
 func visited(path []cell, c cell) bool {
 	for _, p := range path {
 		if p.x == c.x && p.y == c.y {
-			return true // Cell is already in the path
+			return true
 		}
 	}
 	return false
 }
 
-// union two sets by the second value in slices of length 3 (assuming idential sizes)
-func unionByMiddleVal(setA, setB [][]cell) [][]cell {
-	solutions := make([][]cell, 0)
+// //////////
+// Part 2  //
+// //////////
 
-	// FIXME: this should be unique
+// unionByMiddleVal groups paths by the middle cell of their slices
+func unionByMiddleVal(setA, setB [][]cell) map[cell][][]cell {
+	solutions := make(map[cell][][]cell)
+
+	// Add paths from setA grouped by their middle cell
 	for i := range setA {
-		for j := range setB {
-			// check that middle coord is the same but is not the same match
-			if setA[i][1] != setB[j][1] || setA[i][0] == setB[j][0] {
-				continue
-			}
-			fmt.Println("\nmatch!")
-			fmt.Printf("setA[%d]: %v\n", i, setA[i])
-			fmt.Printf("setB[%d]: %v\n", j, setB[j])
-			solution := make([]cell, 0, len(setA[i])+len(setB[j]))
-			solution = append(solution, setA[i]...)
-			solution = append(solution, setB[j]...)
+		middleCell := setA[i][1]
+		solutions[middleCell] = append(solutions[middleCell], setA[i])
+	}
 
-			solutions = append(solutions, solution)
+	// Add paths from setB if they match and have distinct first cells
+	for i := range setB {
+		middleCell := setB[i][2]
+		if _, ok := solutions[middleCell]; ok && setA[i][0] != solutions[middleCell][0][0] {
+			solutions[middleCell] = append(solutions[middleCell], setB[i])
 		}
 	}
+
 	return solutions
+}
+
+// countValid counts groups with at least two unique solutions that share the same middle cell
+func countValid(us map[cell][][]cell) int {
+	var count int
+	for _, solution := range us {
+		if len(solution) >= 2 {
+			count++
+		}
+	}
+	return count
+}
+
+// //////////////
+// Debug Funcs //
+// ////////// //
+
+// printUnionSolutions displays the grouped solutions
+func printUnionSolutions(us map[cell][][]cell) {
+	for middleCell, solution := range us {
+		fmt.Printf("Middle Cell: (%s)\n%s\n", cellToString(middleCell), solutionToString(solution))
+	}
+}
+
+// cellToString formats a cell as a readable string
+func cellToString(c cell) string {
+	return fmt.Sprintf("[%s]: [%d,%d]", string(c.val), c.x, c.y)
+}
+
+// solutionToString formats a solution as a readable string
+func solutionToString(s [][]cell) string {
+	var export string
+	for _, row := range s {
+		export += "\t"
+		for _, cell := range row {
+			export += fmt.Sprintf("%s ", cellToString(cell))
+		}
+		export += "\n"
+	}
+	return export
+}
+
+// puzzleToString prints the grid to the console
+func puzzleToString(s [][]cell) {
+	for _, row := range s {
+		for _, cell := range row {
+			fmt.Print(string(cell.val))
+		}
+		fmt.Println()
+	}
 }

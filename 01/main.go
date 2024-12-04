@@ -120,7 +120,7 @@ func absDiffInt(x, y int) int {
 }
 
 // //////////
-// Part 2 //
+// Part 2  //
 // //////////
 
 // Creates a map with all keys from the input list initialized to 0
