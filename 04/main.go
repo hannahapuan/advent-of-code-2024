@@ -190,9 +190,6 @@ func unionByMiddleVal(setA, setB [][]cell) map[cell][][]cell {
 		if _, ok := solutions[middleCell]; ok && setA[i][0] != solutions[middleCell][0][0] {
 			solutions[middleCell] = append(solutions[middleCell], setB[i])
 		}
-		if len(solutions) > 1 {
-
-		}
 	}
 
 	return solutions
