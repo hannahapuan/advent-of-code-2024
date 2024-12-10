@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-// Constants for configuration
+// https://adventofcode.com/2024/day/3
+
 const (
 	filename           string = "input.txt"                                      // File containing the input data
 	prefix             string = "mul("                                           // Prefix for a valid "mul" function call
@@ -100,6 +101,10 @@ func readInput(fname string) (string, error) {
 	}
 	return instructions, nil // Return the full content as a single string
 }
+
+// /////////////
+// Part 1 & 2 //
+// ////// /////
 
 // Extracts all matches of a given regex from the input string
 func extractCalls(regex, input string) ([]string, error) {
