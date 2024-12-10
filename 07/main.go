@@ -11,15 +11,16 @@ import (
 // https://adventofcode.com/2024/day/7
 
 const (
-	filename   string = "input.txt" // Input file name
-	delimColon string = ":"         // Delimiter for separating target and values
-	delimSpace string = " "         // Delimiter for separating values
-	mult       rune   = '*'         // Multiplication operator
-	add        rune   = '+'         // Addition operator
+	filename       string = "input.txt" // Input file name
+	delimColon     string = ":"         // Delimiter for separating target and values
+	delimSpace     string = " "         // Delimiter for separating values
+	multOperator   string = "*"         // Multiplication operator
+	addOperator    string = "+"         // Addition operator
+	concatOperator string = "||"        // concat operator
 )
 
 var (
-	ops = []rune{'*', '+'} // List of possible operators
+	ops = []string{"*", "+", "||"} // List of possible operators
 )
 
 type equation struct {
@@ -100,14 +101,14 @@ func readInput(fname string) ([]equation, error) {
 }
 
 // Generates all combinations of operators for the given length
-func generateCombinations(elements []rune, length int) [][]rune {
-	var result [][]rune // List to store the combinations
+func generateCombinations(elements []string, length int) [][]string {
+	var result [][]string // List to store the combinations
 
 	combination := make([]int64, length) // Array to track the current combination indices
 
 	for {
 		// Create the current combination based on indices
-		current := make([]rune, length)
+		current := make([]string, length)
 		for i := 0; i < length; i++ {
 			current[i] = elements[combination[i]]
 		}
@@ -134,7 +135,7 @@ func generateCombinations(elements []rune, length int) [][]rune {
 }
 
 // Solves the equations by trying all operator combinations and returns the total sum of valid answers
-func doMath(operators [][]rune, equation equation) int64 {
+func doMath(operators [][]string, equation equation) int64 {
 	var totalSum int64
 
 	for _, operatorCombo := range operators {
@@ -159,13 +160,24 @@ func doMath(operators [][]rune, equation equation) int64 {
 }
 
 // Performs the mathematical operation based on the given operator
-func do(operator rune, a, b int64) int64 {
+func do(operator string, a, b int64) int64 {
 	switch operator {
-	case mult:
+	case multOperator:
 		return a * b
-	case add:
+	case addOperator:
 		return a + b
+	case concatOperator:
+		return concat(a, b)
 	}
 	os.Exit(1) // Exit if an unsupported operator is encountered
 	return 0
+}
+
+func concat(a, b int64) int64 {
+	cs := fmt.Sprintf("%d%d", a, b)
+	export, err := strconv.ParseInt(cs, 10, 64)
+	if err != nil {
+		os.Exit(1)
+	}
+	return export
 }
