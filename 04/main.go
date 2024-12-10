@@ -10,7 +10,7 @@ import (
 
 // Constants for input filename and solutions to find
 const (
-	filename     string = "input.txt"
+	filename     string = "example.txt"
 	solutionXMAS string = "XMAS"
 	solutionMAS  string = "MAS"
 	solutionSAM  string = "SAM"
@@ -190,6 +190,9 @@ func unionByMiddleVal(setA, setB [][]cell) map[cell][][]cell {
 		if _, ok := solutions[middleCell]; ok && setA[i][0] != solutions[middleCell][0][0] {
 			solutions[middleCell] = append(solutions[middleCell], setB[i])
 		}
+		if len(solutions) > 1 {
+
+		}
 	}
 
 	return solutions
@@ -213,7 +216,9 @@ func countValid(us map[cell][][]cell) int {
 // printUnionSolutions displays the grouped solutions
 func printUnionSolutions(us map[cell][][]cell) {
 	for middleCell, solution := range us {
-		fmt.Printf("Middle Cell: (%s)\n%s\n", cellToString(middleCell), solutionToString(solution))
+		if len(solution) > 1 {
+			fmt.Printf("Middle Cell: (%s)\n%s\n", cellToString(middleCell), solutionToString(solution))
+		}
 	}
 }
 
