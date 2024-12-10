@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-// Constants
+// https://adventofcode.com/2024/day/1
+
 const (
 	filename = "input.txt" // Input file containing pairs of integers
 	delim    = "   "       // Delimiter used to split input (three spaces)
@@ -23,7 +24,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Part 1: Calculate the sum of absolute differences between sorted lists
+	// Part 1
+	// Calculate the sum of absolute differences between sorted lists
 	fmt.Println("part 1")
 
 	// Create sorted copies of the original lists
@@ -35,7 +37,8 @@ func main() {
 	// Calculate and print the result for Part 1
 	fmt.Println(partOneBruteForceSolution(sortedL0, sortedL1))
 
-	// Part 2: Calculate the similarity score
+	// Part 2
+	// Calculate the similarity score
 	fmt.Println("part 2")
 	// Create a map from list0 with all keys initialized to 0
 	m0 := listToZeroMap(list0)
@@ -94,7 +97,11 @@ func readInput(fname string) ([]int, []int, error) {
 	return l0, l1, nil
 }
 
-// Part 1: Calculate the sum of absolute differences between corresponding elements in two lists
+////////////
+// Part 1 //
+////////////
+
+// Calculate the sum of absolute differences between corresponding elements in two lists
 func partOneBruteForceSolution(list0, list1 []int) int {
 	var distance int
 	// Iterate over both lists and calculate the absolute difference
@@ -112,7 +119,11 @@ func absDiffInt(x, y int) int {
 	return x - y
 }
 
-// Part 2: Creates a map with all keys from the input list initialized to 0
+// //////////
+// Part 2 //
+// //////////
+
+// Creates a map with all keys from the input list initialized to 0
 func listToZeroMap(list []int) map[int]int {
 	m := make(map[int]int) // Initialize an empty map
 	for _, lid := range list {
