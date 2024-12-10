@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	filename string = "input.txt" // Name of the input file
-	solution string = "XMAS"      // Target solution to find
+	filename        string = "example.txt" // Name of the input file
+	solution        string = "XMAS"        // Target solution to find
+	secondSolution0 string = "MAS"
+	secondSolution1 string = "SAM"
 )
 
 // direction represents a movement in the grid
@@ -18,7 +20,7 @@ type direction struct {
 
 // Possible movement directions for adjacency search
 var (
-	directions = []direction{
+	part1directions = []direction{
 		{-1, -1}, // Top-left
 		{-1, 0},  // Top
 		{-1, 1},  // Top-right
@@ -27,6 +29,10 @@ var (
 		{1, -1},  // Bottom-left
 		{1, 0},   // Bottom
 		{1, 1},   // Bottom-right
+	}
+	part2directions = []direction{
+		{-1, -1}, // Top-left
+		{-1, 1},  // Top-right
 	}
 )
 
@@ -40,11 +46,21 @@ func main() {
 	// Read the puzzle grid from the input file
 	puzzle := readInput(filename)
 
+	// Part 1
 	// Find all paths in the grid that match the target solution
-	solutions := findSolutions(puzzle, solution)
+	solutions1 := findSolutions(puzzle, solution, part1directions)
 
 	// Print the number of solutions found
-	fmt.Println(len(solutions))
+	fmt.Println(len(solutions1))
+
+	// Part 2
+	// find all instances of "MAS"
+	solutions2 := findSolutions(puzzle, secondSolution0, part2directions)
+
+	// Print the number of solutions found
+	fmt.Println(len(solutions2))
+	fmt.Println(len(unionByMiddleVal(solutions2, solutions2)))
+
 }
 
 // readInput reads the puzzle grid from a file and returns a 2D slice of cells
@@ -94,8 +110,12 @@ func readInput(fname string) [][]cell {
 	return cells
 }
 
+// //////////
+// Part 2 //
+// //////////
+
 // findSolutions searches the grid for all paths that match the target solution
-func findSolutions(puzzle [][]cell, solution string) [][]cell {
+func findSolutions(puzzle [][]cell, solution string, validDirections []direction) [][]cell {
 	var solutions [][]cell // List to store all matching paths
 
 	// Iterate over all cells in the grid
@@ -107,7 +127,7 @@ func findSolutions(puzzle [][]cell, solution string) [][]cell {
 				path = append(path, puzzle[i][j]) // Add the current cell to the path
 
 				// Explore all possible directions from this cell
-				for _, dir := range directions {
+				for _, dir := range validDirections {
 					solutions = dfs(puzzle, i, j, solution[1:], path, dir, solutions)
 				}
 			}
@@ -157,4 +177,28 @@ func visited(path []cell, c cell) bool {
 		}
 	}
 	return false
+}
+
+// union two sets by the second value in slices of length 3 (assuming idential sizes)
+func unionByMiddleVal(setA, setB [][]cell) [][]cell {
+	solutions := make([][]cell, 0)
+
+	// FIXME: this should be unique
+	for i := range setA {
+		for j := range setB {
+			// check that middle coord is the same but is not the same match
+			if setA[i][1] != setB[j][1] || setA[i][0] == setB[j][0] {
+				continue
+			}
+			fmt.Println("\nmatch!")
+			fmt.Printf("setA[%d]: %v\n", i, setA[i])
+			fmt.Printf("setB[%d]: %v\n", j, setB[j])
+			solution := make([]cell, 0, len(setA[i])+len(setB[j]))
+			solution = append(solution, setA[i]...)
+			solution = append(solution, setB[j]...)
+
+			solutions = append(solutions, solution)
+		}
+	}
+	return solutions
 }
