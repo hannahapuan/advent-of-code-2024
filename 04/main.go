@@ -6,11 +6,15 @@ import (
 	"os"
 )
 
-// Constants
 const (
 	filename string = "input.txt" // Name of the input file
 	solution string = "XMAS"      // Target solution to find
 )
+
+// direction represents a movement in the grid
+type direction struct {
+	dx, dy int // Changes in x and y coordinates for the direction
+}
 
 // Possible movement directions for adjacency search
 var (
@@ -32,13 +36,12 @@ type cell struct {
 	val  rune
 }
 
-// Main function
 func main() {
 	// Read the puzzle grid from the input file
 	puzzle := readInput(filename)
 
 	// Find all paths in the grid that match the target solution
-	solutions := findSolutions(puzzle, "XMAS")
+	solutions := findSolutions(puzzle, solution)
 
 	// Print the number of solutions found
 	fmt.Println(len(solutions))
@@ -48,7 +51,6 @@ func main() {
 func readInput(fname string) [][]cell {
 	cells := make([][]cell, 0) // Initialize the 2D slice
 
-	// Open the file for reading
 	file, err := os.Open(fname)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
@@ -56,15 +58,15 @@ func readInput(fname string) [][]cell {
 	}
 	defer file.Close()
 
-	reader := bufio.NewReader(file) // Create a buffered reader
+	reader := bufio.NewReader(file)
 
-	var i, j int           // Column (i) and row (j) indices
-	row := make([]cell, 0) // Current row being read
+	var i, j int
+	row := make([]cell, 0)
 
 	for {
-		char, _, err := reader.ReadRune() // Read the next rune from the file
+		char, _, err := reader.ReadRune()
 		if err != nil {
-			if err.Error() == "EOF" { // Handle end-of-file
+			if err.Error() == "EOF" {
 				if len(row) > 0 { // Append the last row if not empty
 					cells = append(cells, row)
 				}
@@ -75,20 +77,19 @@ func readInput(fname string) [][]cell {
 		}
 
 		if char == '\n' { // Handle newline
-			cells = append(cells, row) // Add the completed row to the grid
-			row = make([]cell, 0)      // Reset the row
-			j++                        // Increment row index
-			i = 0                      // Reset column index
+			cells = append(cells, row)
+			row = make([]cell, 0)
+			j++
+			i = 0
 			continue
 		}
 
-		// Add the character to the current row as a cell
 		row = append(row, cell{
 			x:   i,
 			y:   j,
 			val: char,
 		})
-		i++ // Increment column index
+		i++
 	}
 	return cells
 }
@@ -116,27 +117,26 @@ func findSolutions(puzzle [][]cell, solution string) [][]cell {
 	return solutions
 }
 
-// dfs performs a depth-first search to find paths that match the solution
+// dfs performs a recursive depth-first search to find paths that match the solution
 func dfs(puzzle [][]cell, x, y int, remainingSolution string, path []cell, dir direction, solutions [][]cell) [][]cell {
-	// Base case: If there are no more characters to match, add the path to solutions
+	// base case: If there are no more characters to match, add the path to solutions
 	if len(remainingSolution) == 0 {
 		solutions = append(solutions, path)
 		return solutions
 	}
 
-	// Calculate the next cell's coordinates
+	// next cell's coordinates
 	nx, ny := x+dir.dx, y+dir.dy
 
-	// Check if the next cell is within bounds
-	if nx >= 0 && nx < len(puzzle) && ny >= 0 && ny < len(puzzle[0]) {
-		// Check if the next cell matches the next character in the solution
+	if inBounds(nx, ny, puzzle) {
+		// check if the next cell matches the next character in the solution
 		// and if it hasn't already been visited in the current path
-		if puzzle[nx][ny].val == rune(remainingSolution[0]) && !contains(path, puzzle[nx][ny]) {
+		if puzzle[nx][ny].val == rune(remainingSolution[0]) && !visited(path, puzzle[nx][ny]) {
 			// Create a new path including the next cell
 			newPath := append([]cell{}, path...)
 			newPath = append(newPath, puzzle[nx][ny])
 
-			// Recursively continue the search with the updated path and remaining solution
+			// recursive case: continue the search with the updated path and remaining solution
 			solutions = dfs(puzzle, nx, ny, remainingSolution[1:], newPath, dir, solutions)
 		}
 	}
@@ -144,17 +144,17 @@ func dfs(puzzle [][]cell, x, y int, remainingSolution string, path []cell, dir d
 	return solutions
 }
 
-// contains checks if a cell is already in the current path
-func contains(path []cell, c cell) bool {
+// inBounds checks if the next cell is within bounds
+func inBounds(x, y int, puzzle [][]cell) bool {
+	return x >= 0 && x < len(puzzle) && y >= 0 && y < len(puzzle[0])
+}
+
+// visited checks if a cell is already in the current path
+func visited(path []cell, c cell) bool {
 	for _, p := range path {
 		if p.x == c.x && p.y == c.y {
 			return true // Cell is already in the path
 		}
 	}
 	return false
-}
-
-// direction represents a movement in the grid
-type direction struct {
-	dx, dy int // Changes in x and y coordinates for the direction
 }
