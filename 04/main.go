@@ -10,7 +10,7 @@ import (
 
 // Constants for input filename and solutions to find
 const (
-	filename     string = "example.txt"
+	filename     string = "input.txt"
 	solutionXMAS string = "XMAS"
 	solutionMAS  string = "MAS"
 	solutionSAM  string = "SAM"
@@ -186,7 +186,7 @@ func unionByMiddleVal(setA, setB [][]cell) map[cell][][]cell {
 
 	// Add paths from setB if they match and have distinct first cells
 	for i := range setB {
-		middleCell := setB[i][2]
+		middleCell := setB[i][1]
 		if _, ok := solutions[middleCell]; ok && setA[i][0] != solutions[middleCell][0][0] {
 			solutions[middleCell] = append(solutions[middleCell], setB[i])
 		}
