@@ -10,22 +10,24 @@ import (
 // https://adventofcode.com/2024/day/6
 
 const (
-	fileName    string = "input.txt"
-	visitedRune rune   = 'X'
-	openRune    rune   = '.'
-	blockedRune rune   = '#'
+	fileName    string = "input.txt" // Name of the input file containing the grid
+	visitedRune rune   = 'X'         // Rune representing a visited cell
+	openRune    rune   = '.'         // Rune representing an open (unvisited) cell
+	blockedRune rune   = '#'         // Rune representing a blocked cell
 )
 
-// FIXME: remove these later theyre just for ref for now
 var (
+	// Maps arrow characters to their respective directions
 	arrowToDir map[rune]string = map[rune]string{
 		'v': "down",
 		'^': "up",
 		'>': "right",
 		'<': "left",
 	}
+	// Array of possible directions for traversal
 	directions = []string{"up", "right", "down", "left"}
-	moves      = map[string]move{
+	// Maps directions to their respective movement deltas
+	moves = map[string]move{
 		"up":    {0, -1},
 		"right": {1, 0},
 		"down":  {0, 1},
@@ -33,16 +35,18 @@ var (
 	}
 )
 
+// Represents a movement with x and y deltas
 type move struct {
 	dx, dy int
 }
 
-// cell represents a single position in the grid with coordinates and value
+// Represents a single position in the grid with coordinates and value
 type cell struct {
 	x, y int
 	val  rune
 }
 
+// Represents the guard's state: current position, path traversed, and direction
 type guard struct {
 	currPos   cell
 	path      []cell
@@ -50,31 +54,32 @@ type guard struct {
 }
 
 func main() {
+	// Read the grid and initialize the guard's state
 	cells, guard := readInput(fileName)
 	count := 0
+
+	// Simulate the guard's traversal until no moves are available
 	for {
 		var err error
 		guard, cells, err = step(guard, cells)
 		if err != nil {
+			// Print final results when traversal ends
 			fmt.Printf("Finished traversal. Total steps: %d\n", count)
 			fmt.Printf("\t Total distinct steps: %d\n", distinctPositions(cells))
 			break
 		}
-		// puzzleToString(cells)
-		// printGuardMove(guard)
+		// // Print the grid and guard's position after each step
+		// fmt.Println(puzzleToString(cells))
+		// fmt.Println(guardPosToString(guard))
 		// fmt.Println("\n---------------------\n")
 		count++
 	}
 }
 
-// output:
-// 2d array of map of cells
-// guard path (contains only one cell value of the init value of the guard)
-
+// Reads the input file and initializes the grid and guard's starting state
 func readInput(fname string) ([][]cell, guard) {
-	cells := make([][]cell, 0)
+	cells := make([][]cell, 0) // 2D array representing the grid
 	guardPath := make([]cell, 0)
-	// TODO: update this to handle any direction, right now it is up as the example starts at up
 	gu := guard{
 		path: guardPath,
 	}
@@ -95,7 +100,7 @@ func readInput(fname string) ([][]cell, guard) {
 		if err != nil {
 			if err.Error() == "EOF" {
 				if len(row) > 0 {
-					cells = append(cells, row) // Append the last row
+					cells = append(cells, row) // Append the last row to the grid
 				}
 				break
 			}
@@ -103,19 +108,18 @@ func readInput(fname string) ([][]cell, guard) {
 			return nil, guard{}
 		}
 
-		if char == '\n' { // Handle newlines as row separators
+		if char == '\n' {
+			// Start a new row when encountering a newline
 			cells = append(cells, row)
 			row = make([]cell, 0)
-			j++ // Move to the next row
+			j++
 			i = 0
 			continue
 		}
 
 		currCell := cell{x: i, y: j, val: char}
-		// Add the character as a cell to the current row
-		// FIXME: this startrune will change
+		// Identify the guard's starting position and direction
 		dir, ok := arrowToDir[char]
-		// found where the guard starts
 		if ok {
 			char = visitedRune
 			currCell.val = visitedRune
@@ -129,6 +133,7 @@ func readInput(fname string) ([][]cell, guard) {
 	return cells, gu
 }
 
+// Simulates a single step of the guard's movement
 func step(g guard, cells [][]cell) (guard, [][]cell, error) {
 	directionsTried := 0
 	for directionsTried < len(directions) {
@@ -136,6 +141,7 @@ func step(g guard, cells [][]cell) (guard, [][]cell, error) {
 		newX := g.currPos.x + move.dx
 		newY := g.currPos.y + move.dy
 
+		// Stop traversal if out of bounds
 		if !inBounds(newX, newY, cells) {
 			return g, cells, errors.New("done!")
 		}
@@ -143,23 +149,22 @@ func step(g guard, cells [][]cell) (guard, [][]cell, error) {
 		if cells[newY][newX].val != blockedRune {
 			// Mark the new cell as visited
 			cells[newY][newX].val = visitedRune
-
-			// Update guard position
+			// Update the guard's position and path
 			g.currPos = cell{x: newX, y: newY, val: visitedRune}
 			g.path = append(g.path, g.currPos)
-
 			return g, cells, nil
 		}
 
-		// Rotate to try the next direction
+		// Rotate to the next direction if the current move is invalid
 		g.direction = turnRight(g.direction)
 		directionsTried++
 	}
 
-	// If no valid moves are found
+	// Return an error if no valid moves are available
 	return g, cells, errors.New("no valid moves available")
 }
 
+// Rotates the guard's direction 90 degrees clockwise
 func turnRight(dir string) string {
 	switch dir {
 	case "up":
@@ -174,20 +179,12 @@ func turnRight(dir string) string {
 	return ""
 }
 
-// puzzleToString prints the grid to the console
-func puzzleToString(s [][]cell) {
-	for _, row := range s {
-		for _, cell := range row {
-			fmt.Printf("%s ", string(cell.val))
-		}
-		fmt.Println()
-	}
-}
-
+// Checks if the given coordinates are within the grid bounds
 func inBounds(x, y int, cells [][]cell) bool {
 	return x >= 0 && x < len(cells) && y >= 0 && y < len(cells[x])
 }
 
+// Counts the number of distinct visited cells
 func distinctPositions(s [][]cell) int {
 	var count int
 	for _, row := range s {
@@ -200,6 +197,19 @@ func distinctPositions(s [][]cell) int {
 	return count
 }
 
-func printGuardMove(g guard) {
-	fmt.Printf("guard pos: (%d,%d)\n", g.currPos.x, g.currPos.y)
+// Formats the guard's current position as a string
+func guardPosToString(g guard) string {
+	return fmt.Sprintf("guard pos: (%d,%d)\n", g.currPos.x, g.currPos.y)
+}
+
+// Converts the grid into a printable string representation
+func puzzleToString(s [][]cell) string {
+	var export string
+	for _, row := range s {
+		for _, cell := range row {
+			export += fmt.Sprintf("%s ", string(cell.val))
+		}
+		export += "\n"
+	}
+	return export
 }
