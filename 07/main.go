@@ -173,6 +173,8 @@ func do(operator string, a, b int64) int64 {
 	return 0
 }
 
+// concat returns a,b => ab as the literal decimal values concatenated
+// e.g. 12 || 34 => 1234
 func concat(a, b int64) int64 {
 	cs := fmt.Sprintf("%d%d", a, b)
 	export, err := strconv.ParseInt(cs, 10, 64)
