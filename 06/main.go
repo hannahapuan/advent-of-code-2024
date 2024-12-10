@@ -118,9 +118,11 @@ func readInput(fname string) ([][]cell, guard) {
 		}
 
 		currCell := cell{x: i, y: j, val: char}
+
 		// Identify the guard's starting position and direction
 		dir, ok := arrowToDir[char]
 		if ok {
+			// mark starting position as visted and add it to the guard path
 			char = visitedRune
 			currCell.val = visitedRune
 			gu.path = append(gu.path, currCell)
@@ -143,7 +145,7 @@ func step(g guard, cells [][]cell) (guard, [][]cell, error) {
 
 		// Stop traversal if out of bounds
 		if !inBounds(newX, newY, cells) {
-			return g, cells, errors.New("done!")
+			return g, cells, errors.New("no more valid moves")
 		}
 		// Check if the move is valid
 		if cells[newY][newX].val != blockedRune {
