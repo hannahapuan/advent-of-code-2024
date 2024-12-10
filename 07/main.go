@@ -39,7 +39,7 @@ func main() {
 		// Generate all possible combinations of operators for the given equation
 		opCombos := generateCombinations(ops, len(eq.vals)-1)
 		// Solve the equations and calculate the total sum of valid answers
-		sum = doMath(opCombos, eqs)
+		sum += doMath(opCombos, eq)
 	}
 	fmt.Println(sum) // Print the total sum of valid answers
 }
@@ -134,26 +134,24 @@ func generateCombinations(elements []rune, length int) [][]rune {
 }
 
 // Solves the equations by trying all operator combinations and returns the total sum of valid answers
-func doMath(operators [][]rune, equations []equation) int64 {
+func doMath(operators [][]rune, equation equation) int64 {
 	var totalSum int64
 
-	for _, equation := range equations {
-		for _, operatorCombo := range operators {
-			var ans int64
-			for i := 0; i < len(equation.vals)-1; i++ {
-				if i == len(operatorCombo) {
-					break // Avoid index out of range
-				}
-				if i == 0 {
-					ans = equation.vals[i] // Initialize the result with the first value
-				}
-				newAns := do(operatorCombo[i], ans, equation.vals[i+1]) // Apply the operator
-				ans = newAns
+	for _, operatorCombo := range operators {
+		var ans int64
+		for i := 0; i < len(equation.vals)-1; i++ {
+			if i == len(operatorCombo) {
+				break // Avoid index out of range
 			}
-			if ans == equation.answer { // Check if the result matches the target
-				totalSum += ans
-				break // Skip further operator combinations for this equation
+			if i == 0 {
+				ans = equation.vals[i] // Initialize the result with the first value
 			}
+			newAns := do(operatorCombo[i], ans, equation.vals[i+1]) // Apply the operator
+			ans = newAns
+		}
+		if ans == equation.answer { // Check if the result matches the target
+			totalSum = totalSum + equation.answer
+			break // Skip further operator combinations for this equation
 		}
 	}
 
