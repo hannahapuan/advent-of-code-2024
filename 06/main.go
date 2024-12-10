@@ -10,7 +10,7 @@ import (
 // https://adventofcode.com/2024/day/6
 
 const (
-	fileName    string = "example.txt"
+	fileName    string = "input.txt"
 	visitedRune rune   = 'X'
 	openRune    rune   = '.'
 	blockedRune rune   = '#'
@@ -24,14 +24,7 @@ var (
 		'>': "right",
 		'<': "left",
 	}
-	dirToArrow map[string]rune = map[string]rune{
-		"down":  'v',
-		"up":    '^',
-		"right": '>',
-		"left":  '<',
-	}
 	directions = []string{"up", "right", "down", "left"}
-	cellVal    = []string{"X", ".", "#"}
 	moves      = map[string]move{
 		"up":    {0, -1},
 		"right": {1, 0},
@@ -58,13 +51,19 @@ type guard struct {
 
 func main() {
 	cells, guard := readInput(fileName)
+	count := 0
 	for {
 		var err error
 		guard, cells, err = step(guard, cells)
 		if err != nil {
-			fmt.Println("Finished traversal. Total steps:", len(guard.path))
+			fmt.Printf("Finished traversal. Total steps: %d\n", count)
+			fmt.Printf("\t Total distinct steps: %d\n", distinctPositions(cells))
 			break
 		}
+		// puzzleToString(cells)
+		// printGuardMove(guard)
+		// fmt.Println("\n---------------------\n")
+		count++
 	}
 }
 
@@ -129,28 +128,31 @@ func readInput(fname string) ([][]cell, guard) {
 	}
 	return cells, gu
 }
+
 func step(g guard, cells [][]cell) (guard, [][]cell, error) {
 	directionsTried := 0
 	for directionsTried < len(directions) {
-		fmt.Printf("Trying direction: %s at (%d, %d)\n", g.direction, g.currPos.x, g.currPos.y)
-		fmt.Printf("Cell status: %v\n", cells)
 		move := moves[g.direction]
 		newX := g.currPos.x + move.dx
 		newY := g.currPos.y + move.dy
 
+		if !inBounds(newX, newY, cells) {
+			return g, cells, errors.New("done!")
+		}
 		// Check if the move is valid
-		if inBounds(newX, newY, cells) && cells[newY][newX].val == openRune {
+		if cells[newY][newX].val != blockedRune {
 			// Mark the new cell as visited
 			cells[newY][newX].val = visitedRune
 
 			// Update guard position
 			g.currPos = cell{x: newX, y: newY, val: visitedRune}
 			g.path = append(g.path, g.currPos)
+
 			return g, cells, nil
 		}
 
 		// Rotate to try the next direction
-		g.direction = rotate90(g.direction)
+		g.direction = turnRight(g.direction)
 		directionsTried++
 	}
 
@@ -158,57 +160,7 @@ func step(g guard, cells [][]cell) (guard, [][]cell, error) {
 	return g, cells, errors.New("no valid moves available")
 }
 
-// func step(g guard, cells [][]cell) (guard, [][]cell, error) {
-// 	fmt.Println()
-// 	fmt.Println("NEW STEP")
-
-// 	d := g.direction
-// 	fmt.Printf("Initial direction: %s\n", d)
-
-// 	newX := g.currPos.x + moves[d].dx
-// 	newY := g.currPos.y + moves[d].dy
-
-// 	visitedDirectionsCount := 0
-
-// 	// Try all directions until a valid move is found
-// 	for visitedDirectionsCount < len(directions)-1 {
-// 		if inBounds(newX, newY, cells) && !visited(newX, newY, g) && cells[newX][newY].val != blockedRune {
-// 			// Found a valid move
-// 			break
-// 		}
-// 		// Rotate to the next direction
-// 		d = rotate90(d)
-// 		fmt.Printf("Rotating to: %s\n", d)
-// 		newX = g.currPos.x + moves[d].dx
-// 		newY = g.currPos.y + moves[d].dy
-// 		visitedDirectionsCount++
-// 	}
-
-// 	// If all directions are blocked
-// 	if visitedDirectionsCount == len(directions) || !inBounds(newX, newY, cells) {
-// 		return guard{}, nil, errors.New("no valid moves available")
-// 	}
-
-// 	// Update guard position and path
-// 	g.currPos = cell{
-// 		x:   newX,
-// 		y:   newY,
-// 		val: g.currPos.val,
-// 	}
-// 	g.path = append(g.path, g.currPos)
-
-// 	// Update the grid
-// 	cells[newX][newY].val = visitedRune
-
-// 	fmt.Printf("New position: (%d,%d) | Direction: %s\n", newX, newY, d)
-
-// 	// Update guard's direction
-// 	g.direction = d
-
-// 	return g, cells, nil
-// }
-
-func rotate90(dir string) string {
+func turnRight(dir string) string {
 	switch dir {
 	case "up":
 		return "right"
@@ -223,33 +175,31 @@ func rotate90(dir string) string {
 }
 
 // puzzleToString prints the grid to the console
-func puzzleToString(s [][]cell) string {
-	var export string
+func puzzleToString(s [][]cell) {
 	for _, row := range s {
 		for _, cell := range row {
-			export += fmt.Sprintf("%s ", string(cell.val))
+			fmt.Printf("%s ", string(cell.val))
 		}
-		export += "\n"
+		fmt.Println()
 	}
-	return export
-}
-
-func isValidMove(dir string, x, y int, cells [][]cell) bool {
-	mm := moves[dir]
-	newX := x + mm.dx
-	newY := y + mm.dy
-	return inBounds(newX, newY, cells) && cells[newX][newY].val != blockedRune
 }
 
 func inBounds(x, y int, cells [][]cell) bool {
 	return x >= 0 && x < len(cells) && y >= 0 && y < len(cells[x])
 }
 
-func visited(x, y int, g guard) bool {
-	for _, cell := range g.path {
-		if cell.x == x && cell.y == y {
-			return true
+func distinctPositions(s [][]cell) int {
+	var count int
+	for _, row := range s {
+		for _, cell := range row {
+			if cell.val == visitedRune {
+				count++
+			}
 		}
 	}
-	return false
+	return count
+}
+
+func printGuardMove(g guard) {
+	fmt.Printf("guard pos: (%d,%d)\n", g.currPos.x, g.currPos.y)
 }
