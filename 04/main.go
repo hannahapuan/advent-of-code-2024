@@ -191,6 +191,7 @@ func unionByMiddleVal(setA, setB [][]cell) map[cell][][]cell {
 		//    1) the middle cell was a part of one of setA's solutions
 		//    2) the middle cell is not a part of a solution already included in setA's solutions
 		if _, ok := solutions[middleCell]; ok && setA[i][0] != solutions[middleCell][0][0] {
+			// append to solution, givng an X-MAS
 			solutions[middleCell] = append(solutions[middleCell], setB[i])
 		}
 	}
