@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// TODO: either something wrong with the calculation of the adj cells or the tracking through them in the sols
 const (
 	filename    string = "example.txt" // Name of the input file
 	solution    string = "XMAS"        // Target solution to find
@@ -132,7 +133,7 @@ func populateAdjCells(x, y int, puzzle [][]cell) map[direction][]cell {
 		if inRange(x+dir.dx, y+dir.dy, width, height) {
 			for i, r := range rSol[:len(rSol)-1] { // Match against solution runes
 				if curVal == r {
-					adjCells = appendIfNotVal(puzzle[x+dir.dx][y+dir.dy], adjCells, dir, rSol[i+1])
+					adjCells = appendIfVal(puzzle[x+dir.dx][y+dir.dy], adjCells, dir, rSol[i+1])
 				}
 			}
 		}
@@ -145,8 +146,8 @@ func inRange(x, y, width, height int) bool {
 	return x >= 0 && x < height && y >= 0 && y < width
 }
 
-// appendIfNotVal adds a cell to the map if it matches the desired next rune
-func appendIfNotVal(toInsert cell, cells map[direction][]cell, dir direction, desiredNextVal rune) map[direction][]cell {
+// appendIfVal adds a cell to the map if it matches the desired next rune
+func appendIfVal(toInsert cell, cells map[direction][]cell, dir direction, desiredNextVal rune) map[direction][]cell {
 	if toInsert.val != desiredNextVal { // Skip if value doesn't match the desired rune
 		return cells
 	}
@@ -164,15 +165,15 @@ func findSols(ctac map[rune]map[direction][]cell) [][]cell {
 	desiredRuneIndex := 0
 	for _, dirSearching := range directions {
 		for desiredRuneIndex < len(rSol)-1 {
-			fmt.Println("here")
-			fmt.Printf("\tdesiredRuneIndex: %d\n", desiredRuneIndex)
-			fmt.Printf("\tdesiredRune: %s\n", string(rSol[desiredRuneIndex]))
-			fmt.Printf("\tdirSearching: %v\n", dirSearching)
+			// fmt.Println("here")
+			// fmt.Printf("\tdesiredRuneIndex: %d\n", desiredRuneIndex)
+			// fmt.Printf("\tdesiredRune: %s\n", string(rSol[desiredRuneIndex]))
+			// fmt.Printf("\tdirSearching: %v\n", dirSearching)
 			desiredCells := ctac[rSol[desiredRuneIndex]][dirSearching]
-			fmt.Printf("\tdesiredCells: %v\n", toString(desiredCells))
+			ctac[rSol[desiredRuneIndex]][dirSearching] = deleteCell(desiredCells, 0)
+			// fmt.Printf("\tdesiredCells: %v\n", toString(desiredCells))
 
-			if len(desiredCells) == 0 {
-				// solution found
+			if len(desiredCells) == 0 || desiredRuneIndex == len(rSol)-1 {
 				break
 			}
 			for _, cell := range desiredCells {
@@ -186,7 +187,9 @@ func findSols(ctac map[rune]map[direction][]cell) [][]cell {
 				}
 			}
 		}
+		desiredRuneIndex = 0
 		solutions = append(solutions, path)
+		path = make([]cell, 0)
 	}
 	return solutions
 }
