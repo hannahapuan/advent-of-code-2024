@@ -140,7 +140,6 @@ func calcAntennaPairs(m1 []cell, m2 []cell) map[cell][]change {
 				pairs[cell2] = make([]change, 0)
 			}
 			pairs[cell1] = append(pairs[cell1], s)
-			// pairs[cell2] = append(pairs[cell2], s)
 		}
 	}
 
@@ -167,9 +166,7 @@ func getAllAntinodes(pairs map[cell][]change, m [][]cell) []cell {
 		for _, sl := range changes {
 			an := validAntinodes(c, sl, m)
 			antinodes = append(antinodes, an...)
-			// break
 		}
-		// break
 	}
 	return antinodes
 }
@@ -179,9 +176,7 @@ func validAntinodes(c cell, s change, m [][]cell) []cell {
 
 	if s.dx == 0 {
 		// Prevent divide by zero; vertical line case
-		rateOfChangeY := s.dy
-		newY := c.y + (rateOfChangeY * 2)
-		// newNegY := c.y - rateOfChangeY
+		newY := c.y + (s.dy * 2)
 
 		if inBounds(c.x, newY, m) {
 			c1 := cell{
@@ -193,15 +188,6 @@ func validAntinodes(c cell, s change, m [][]cell) []cell {
 			antinodes = append(antinodes, c1)
 		}
 
-		// if inBounds(c.x, newNegY, m) {
-		// 	c2 := cell{
-		// 		frequency:  '#',
-		// 		x:          c.x,
-		// 		y:          newNegY,
-		// 		isAntinode: true,
-		// 	}
-		// 	antinodes = append(antinodes, c2)
-		// }
 		return antinodes
 	}
 
