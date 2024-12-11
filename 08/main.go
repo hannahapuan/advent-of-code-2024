@@ -20,7 +20,7 @@ type cell struct {
 	isAntenna, isAntinode bool
 }
 
-type slope struct {
+type change struct {
 	dx, dy int
 }
 
@@ -31,7 +31,10 @@ func main() {
 	}
 	mf := flatten2dSlice(m)
 	pairs := calcAntennaPairs(mf, mf)
-
+	fmt.Println("Antenna Pairs:")
+	for c, changes := range pairs {
+		fmt.Printf("Cell (%d, %d, %s) -> Changes: %+v\n", c.x, c.y, string(c.frequency), changes)
+	}
 	fmt.Println(mapToString(m))
 
 	an := getAllAntinodes(pairs, m)
@@ -97,10 +100,22 @@ func readInput(fname string) ([][]cell, error) {
 	return cells, nil
 }
 
-// Converts the grid into a printable string representation
+// Converts the grid into a printable string representation with labeled coordinates
 func mapToString(s [][]cell) string {
 	var export string
-	for _, row := range s {
+
+	// Add X-axis labels
+	export += "   " // Padding for Y-axis labels
+	for x := 0; x < len(s[0]); x++ {
+		export += fmt.Sprintf("%1d ", x)
+	}
+	export += "\n"
+
+	for y, row := range s {
+		// Add Y-axis label
+		export += fmt.Sprintf("%2d ", y)
+
+		// Add row content
 		for _, cell := range row {
 			export += fmt.Sprintf("%s ", string(cell.frequency))
 		}
@@ -108,30 +123,28 @@ func mapToString(s [][]cell) string {
 	}
 	return export
 }
-
-func calcAntennaPairs(m1 []cell, m2 []cell) map[cell][]slope {
-	// aps := make(map[antennaPair]slope)
-	pairs := make(map[cell][]slope)
+func calcAntennaPairs(m1 []cell, m2 []cell) map[cell][]change {
+	pairs := make(map[cell][]change)
 
 	for _, cell1 := range m1 {
 		for _, cell2 := range m2 {
 			if isSameCell(cell1, cell2) || !cell1.isAntenna || !cell2.isAntenna || cell1.frequency != cell2.frequency {
 				continue
 			}
-			s := slope{
+			s := change{
 				dx: cell2.x - cell1.x,
 				dy: cell2.y - cell1.y,
 			}
 			_, ok1 := pairs[cell1]
 			_, ok2 := pairs[cell2]
 			if !ok1 {
-				pairs[cell1] = make([]slope, 0)
+				pairs[cell1] = make([]change, 0)
 			}
 			if !ok2 {
-				pairs[cell2] = make([]slope, 0)
+				pairs[cell2] = make([]change, 0)
 			}
 			pairs[cell1] = append(pairs[cell1], s)
-			pairs[cell2] = append(pairs[cell1], s)
+			// pairs[cell2] = append(pairs[cell2], s)
 		}
 	}
 
@@ -152,28 +165,58 @@ func flatten2dSlice(s [][]cell) []cell {
 	return fs
 }
 
-func getAllAntinodes(pairs map[cell][]slope, m [][]cell) []cell {
+func getAllAntinodes(pairs map[cell][]change, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
-	for c, slopes := range pairs {
-		for _, sl := range slopes {
+	for c, changes := range pairs {
+		for _, sl := range changes {
 			an := validAntinodes(c, sl, m)
 			antinodes = append(antinodes, an...)
+			// break
 		}
+		// break
 	}
 	return antinodes
 }
 
-func validAntinodes(c cell, s slope, m [][]cell) []cell {
+func validAntinodes(c cell, s change, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
-	rateOfChange := s.dy / s.dx * 2
-	newX := c.x + rateOfChange
-	newY := c.y + rateOfChange
-	newNegX := c.x - rateOfChange
-	newNegY := c.y - rateOfChange
-	inBounds1 := inBounds(newX, newY, m)
-	inBounds2 := inBounds(newNegX, newNegY, m)
 
-	if inBounds1 {
+	fmt.Printf("Cell (%d, %d, %s) -> Changes: %+v\n", c.x, c.y, string(c.frequency), s)
+	if s.dx == 0 {
+		// Prevent divide by zero; vertical line case
+		rateOfChangeY := s.dy
+		newY := c.y + (rateOfChangeY * 2)
+		// newNegY := c.y - rateOfChangeY
+
+		if inBounds(c.x, newY, m) {
+			c1 := cell{
+				frequency:  '#',
+				x:          c.x,
+				y:          newY,
+				isAntinode: true,
+			}
+			antinodes = append(antinodes, c1)
+		}
+
+		// if inBounds(c.x, newNegY, m) {
+		// 	c2 := cell{
+		// 		frequency:  '#',
+		// 		x:          c.x,
+		// 		y:          newNegY,
+		// 		isAntinode: true,
+		// 	}
+		// 	antinodes = append(antinodes, c2)
+		// }
+		return antinodes
+	}
+
+	newX := c.x + (s.dx * 2)
+	newY := c.y + (s.dy * 2)
+	// newNegX := c.x - rateOfChangeX
+	// newNegY := c.y - rateOfChangeY
+
+	if inBounds(newX, newY, m) {
+		fmt.Printf("Changed Cell (%d, %d)\n", newX, newY)
 		c1 := cell{
 			frequency:  '#',
 			x:          newX,
@@ -183,23 +226,23 @@ func validAntinodes(c cell, s slope, m [][]cell) []cell {
 		antinodes = append(antinodes, c1)
 	}
 
-	if inBounds2 {
-		c2 := cell{
-			frequency:  '#',
-			x:          newNegX,
-			y:          newNegY,
-			isAntinode: true,
-		}
-		antinodes = append(antinodes, c2)
-	}
+	// if inBounds(newNegX, newNegY, m) {
+	// 	c2 := cell{
+	// 		frequency:  '#',
+	// 		x:          newNegX,
+	// 		y:          newNegY,
+	// 		isAntinode: true,
+	// 	}
+	// 	antinodes = append(antinodes, c2)
+	// }
 
 	return antinodes
 }
 
-func unique(cs []cell) map[cell]bool {
-	mcs := make(map[cell]bool)
+func unique(cs []cell) map[[2]int]bool {
+	mcs := make(map[[2]int]bool)
 	for _, c := range cs {
-		mcs[c] = true
+		mcs[[2]int{c.x, c.y}] = true
 	}
 	return mcs
 }
@@ -209,10 +252,13 @@ func inBounds(x, y int, m [][]cell) bool {
 	return x >= 0 && x < len(m) && y >= 0 && y < len(m[0])
 }
 
-func updateMapWithAntinodes(m [][]cell, antiNodes map[cell]bool) [][]cell {
+func updateMapWithAntinodes(m [][]cell, antiNodes map[[2]int]bool) [][]cell {
 	for antinode := range antiNodes {
-		m[antinode.x][antinode.y].isAntinode = true
-		m[antinode.x][antinode.y].frequency = antinodeVal
+		x, y := antinode[0], antinode[1]
+		if inBounds(x, y, m) {
+			m[y][x].isAntinode = true
+			m[y][x].frequency = antinodeVal
+		}
 	}
 	return m
 }
