@@ -55,12 +55,14 @@ type guard struct {
 
 func main() {
 	// Read the grid and initialize the guard's state
-	cells, guard := readInput(fileName)
+	cells, guard, err := readInput(fileName)
+	if err != nil {
+		os.Exit(1)
+	}
 	count := 0
 
 	// Simulate the guard's traversal until no moves are available
 	for {
-		var err error
 		guard, cells, err = step(guard, cells)
 		if err != nil {
 			// Print final results when traversal ends
@@ -77,7 +79,7 @@ func main() {
 }
 
 // Reads the input file and initializes the grid and guard's starting state
-func readInput(fname string) ([][]cell, guard) {
+func readInput(fname string) ([][]cell, guard, error) {
 	cells := make([][]cell, 0) // 2D array representing the grid
 	guardPath := make([]cell, 0)
 	gu := guard{
@@ -86,8 +88,7 @@ func readInput(fname string) ([][]cell, guard) {
 
 	file, err := os.Open(fname)
 	if err != nil {
-		fmt.Println("Error opening file:", err)
-		return nil, guard{}
+		return nil, guard{}, fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
@@ -104,8 +105,7 @@ func readInput(fname string) ([][]cell, guard) {
 				}
 				break
 			}
-			fmt.Println("Error reading file:", err)
-			return nil, guard{}
+			return nil, guard{}, fmt.Errorf("error reading file :%w", err)
 		}
 
 		if char == '\n' {
@@ -132,7 +132,7 @@ func readInput(fname string) ([][]cell, guard) {
 		row = append(row, currCell)
 		i++
 	}
-	return cells, gu
+	return cells, gu, nil
 }
 
 // Simulates a single step of the guard's movement
