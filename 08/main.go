@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	filename    string = "example.txt"
+	filename    string = "input.txt"
 	openVal     rune   = '.'
 	antinodeVal rune   = '#'
 	regex       string = "[a-zA-Z0-9]"
@@ -31,10 +31,6 @@ func main() {
 	}
 	mf := flatten2dSlice(m)
 	pairs := calcAntennaPairs(mf, mf)
-	fmt.Println("Antenna Pairs:")
-	for c, changes := range pairs {
-		fmt.Printf("Cell (%d, %d, %s) -> Changes: %+v\n", c.x, c.y, string(c.frequency), changes)
-	}
 	fmt.Println(mapToString(m))
 
 	an := getAllAntinodes(pairs, m)
@@ -107,7 +103,7 @@ func mapToString(s [][]cell) string {
 	// Add X-axis labels
 	export += "   " // Padding for Y-axis labels
 	for x := 0; x < len(s[0]); x++ {
-		export += fmt.Sprintf("%1d ", x)
+		export += fmt.Sprintf("%2d ", x)
 	}
 	export += "\n"
 
@@ -117,7 +113,7 @@ func mapToString(s [][]cell) string {
 
 		// Add row content
 		for _, cell := range row {
-			export += fmt.Sprintf("%s ", string(cell.frequency))
+			export += fmt.Sprintf("%s  ", string(cell.frequency))
 		}
 		export += "\n"
 	}
@@ -181,7 +177,6 @@ func getAllAntinodes(pairs map[cell][]change, m [][]cell) []cell {
 func validAntinodes(c cell, s change, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
 
-	fmt.Printf("Cell (%d, %d, %s) -> Changes: %+v\n", c.x, c.y, string(c.frequency), s)
 	if s.dx == 0 {
 		// Prevent divide by zero; vertical line case
 		rateOfChangeY := s.dy
@@ -212,11 +207,8 @@ func validAntinodes(c cell, s change, m [][]cell) []cell {
 
 	newX := c.x + (s.dx * 2)
 	newY := c.y + (s.dy * 2)
-	// newNegX := c.x - rateOfChangeX
-	// newNegY := c.y - rateOfChangeY
 
 	if inBounds(newX, newY, m) {
-		fmt.Printf("Changed Cell (%d, %d)\n", newX, newY)
 		c1 := cell{
 			frequency:  '#',
 			x:          newX,
@@ -225,16 +217,6 @@ func validAntinodes(c cell, s change, m [][]cell) []cell {
 		}
 		antinodes = append(antinodes, c1)
 	}
-
-	// if inBounds(newNegX, newNegY, m) {
-	// 	c2 := cell{
-	// 		frequency:  '#',
-	// 		x:          newNegX,
-	// 		y:          newNegY,
-	// 		isAntinode: true,
-	// 	}
-	// 	antinodes = append(antinodes, c2)
-	// }
 
 	return antinodes
 }
