@@ -9,7 +9,7 @@ import (
 
 // Constants for file input and map symbols
 const (
-	filename    string = "example.txt" // Input file containing the grid
+	filename    string = "input.txt"   // Input file containing the grid
 	openVal     rune   = '.'           // Open cell value
 	antinodeVal rune   = '#'           // Antinode marker
 	regex       string = "[a-zA-Z0-9]" // Regex for valid antenna characters
@@ -28,34 +28,35 @@ type change struct {
 }
 
 func main() {
-	// Read the grid from the input file
+	// 0. Read the grid from the input file
 	m, err := readInput(filename)
 	if err != nil {
 		os.Exit(1) // Exit if the file cannot be read
 	}
 
-	// Flatten the 2D grid into a single slice
+	// 1. Flatten the 2D grid into a single slice
 	mf := flatten2dSlice(m)
 
-	// Calculate antenna pairs based on frequency and position
-	pairs := calcAntennaPairs(mf, mf)
-
-	// Calculate and display antinodes without resonance harmonics
-	an := getAllAntinodes(pairs, m, false)
-	mapWithAntinodes := updateMapWithAntinodes(m, an)
-
-	// Calculate and display antinodes with resonance harmonics
-	anrh := getAllAntinodes(pairs, m, true)
-	mapWithAntinodesrh := updateMapWithAntinodes(m, anrh)
-
-	// Print all the things
 	fmt.Println("Initial Map\n")
 	fmt.Println(mapToString(m))
 	fmt.Println("\n----------------------------\n")
+
+	// 2. Calculate antenna pairs based on frequency and position
+	pairs := calcAntennaPairs(mf, mf)
+
+	// 3. Calculate and display antinodes without resonance harmonics
+	an := getAllAntinodes(pairs, m, false)
+	mapWithAntinodes := updateMapWithAntinodes(m, an)
+
 	fmt.Println("Antinodes Map\n")
 	fmt.Println(mapToString(mapWithAntinodes))
 	fmt.Println("Antinodes Count: ", len(an))
 	fmt.Println("\n----------------------------\n")
+
+	// 4. Calculate and display antinodes with resonance harmonics
+	anrh := getAllAntinodes(pairs, m, true)
+	mapWithAntinodesrh := updateMapWithAntinodes(m, anrh)
+
 	fmt.Println("Antinodes Map with Resonance Harmonics\n")
 	fmt.Println(mapToString(mapWithAntinodesrh))
 	fmt.Println("Antinodes Count with Resonance Harmonics: ", len(anrh))
