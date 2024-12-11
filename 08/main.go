@@ -40,11 +40,11 @@ func main() {
 	// Calculate antenna pairs based on frequency and position
 	pairs := calcAntennaPairs(mf, mf)
 
-	// Calculate and display antinodes without resonant harmonics
+	// Calculate and display antinodes without resonance harmonics
 	an := getAllAntinodes(pairs, m, false)
 	mapWithAntinodes := updateMapWithAntinodes(m, an)
 
-	// Calculate and display antinodes with resonant harmonics
+	// Calculate and display antinodes with resonance harmonics
 	anrh := getAllAntinodes(pairs, m, true)
 	mapWithAntinodesrh := updateMapWithAntinodes(m, anrh)
 
@@ -176,14 +176,14 @@ func flatten2dSlice(s [][]cell) []cell {
 }
 
 // Retrieves all valid antinodes
-// note that the last argument is a flag determining whether resonant harmonics should be calculated
-func getAllAntinodes(pairs map[cell][]change, m [][]cell, withResonantHarmonics bool) map[[2]int]bool {
+// note that the last argument is a flag determining whether resonance harmonics should be calculated
+func getAllAntinodes(pairs map[cell][]change, m [][]cell, withResonanceHarmonics bool) map[[2]int]bool {
 	antinodes := make([]cell, 0)
 	for c, changes := range pairs {
 		for _, sl := range changes {
 			an := make([]cell, 0)
-			if withResonantHarmonics {
-				an = validAntinodesWithResonantHarmonics(c, sl, m)
+			if withResonanceHarmonics {
+				an = validAntinodesWithResonanceHarmonics(c, sl, m)
 			} else {
 				an = validAntinodes(c, sl, m)
 			}
@@ -193,7 +193,7 @@ func getAllAntinodes(pairs map[cell][]change, m [][]cell, withResonantHarmonics 
 	return unique(antinodes)
 }
 
-// Calculates valid antinodes without resonant harmonics
+// Calculates valid antinodes without resonance harmonics
 func validAntinodes(c cell, s change, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
 
@@ -215,8 +215,8 @@ func validAntinodes(c cell, s change, m [][]cell) []cell {
 	return antinodes
 }
 
-// Calculates valid antinodes with resonant harmonics
-func validAntinodesWithResonantHarmonics(c cell, s change, m [][]cell) []cell {
+// Calculates valid antinodes with resonance harmonics
+func validAntinodesWithResonanceHarmonics(c cell, s change, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
 
 	if s.dx == 0 { // Vertical case
