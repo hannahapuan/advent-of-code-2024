@@ -18,25 +18,14 @@ type cell struct {
 	frequency             rune
 	x, y                  int
 	isAntenna, isAntinode bool
-	// matchingAntennas []cell
-}
-
-type antennaPair struct {
-	a1X, a1Y int
-	a2X, a2Y int
 }
 
 type slope struct {
 	dx, dy int
 }
 
-// type antennaPair struct {
-// 	a1 cell
-// 	a2 cell
-// }
-
 func main() {
-	m, atl, err := readInput(filename)
+	m, err := readInput(filename)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -44,25 +33,19 @@ func main() {
 	pairs := calcAntennaPairs(mf, mf)
 
 	fmt.Println(mapToString(m))
-	fmt.Println(atl)
-	// fmt.Println(apToSlopeToString(aps))
-	fmt.Println(pairs)
+
 	an := getAllAntinodes(pairs, m)
 	uan := unique(an)
-	fmt.Println(uan)
 	fmt.Println(len(uan))
-
 }
 
 // Reads the input file and initializes the grid and guard's starting state
-func readInput(fname string) ([][]cell, map[rune][]cell, error) {
-	antennaToLocation := make(map[rune][]cell)
-
+func readInput(fname string) ([][]cell, error) {
 	cells := make([][]cell, 0) // 2D array representing the grid
 
 	file, err := os.Open(fname)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error opening file:  %w", err)
+		return nil, fmt.Errorf("error opening file:  %w", err)
 	}
 	defer file.Close()
 
@@ -73,7 +56,7 @@ func readInput(fname string) ([][]cell, map[rune][]cell, error) {
 	// regex checks if the character is a-z, A-Z, 0-9
 	r, err := regexp.Compile(regex)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error compiling regex string: %s", err)
+		return nil, fmt.Errorf("error compiling regex string: %s", err)
 	}
 
 	for {
@@ -85,7 +68,7 @@ func readInput(fname string) ([][]cell, map[rune][]cell, error) {
 				}
 				break
 			}
-			return nil, nil, fmt.Errorf("error reading file: %w", err)
+			return nil, fmt.Errorf("error reading file: %w", err)
 		}
 
 		if char == '\n' {
@@ -103,23 +86,25 @@ func readInput(fname string) ([][]cell, map[rune][]cell, error) {
 		// antenna case
 		if r.MatchString(string(char)) {
 			currCell.isAntenna = true
-			_, ok := antennaToLocation[char]
-			if !ok {
-				antennaToLocation[char] = make([]cell, 0)
-			}
-			antennaToLocation[char] = append(antennaToLocation[char], currCell)
 		}
 
 		row = append(row, currCell)
 		i++
 	}
-	return cells, antennaToLocation, nil
+	return cells, nil
 }
 
 // Converts the grid into a printable string representation
 func mapToString(s [][]cell) string {
-	var export string
+	export := "  "
+	for i := 0; i < len(s); i++ {
+		export += fmt.Sprintf("%d ", i)
+	}
+	export += "\n"
+	var y int
 	for _, row := range s {
+		export += fmt.Sprintf("%d ", y)
+		y++
 		for _, cell := range row {
 			export += fmt.Sprintf("%s ", string(cell.frequency))
 		}
@@ -137,26 +122,10 @@ func calcAntennaPairs(m1 []cell, m2 []cell) map[cell][]slope {
 			if isSameCell(cell1, cell2) || !cell1.isAntenna || !cell2.isAntenna || cell1.frequency != cell2.frequency {
 				continue
 			}
-			// ap := antennaPair{
-			// 	a1X: cell1.x,
-			// 	a1Y: cell1.y,
-			// 	a2X: cell2.x,
-			// 	a2Y: cell2.y,
-			// }
-			// apRev := antennaPair{
-			// 	a1X: cell2.x,
-			// 	a1Y: cell2.y,
-			// 	a2X: cell1.x,
-			// 	a2Y: cell1.y,
-			// }
-			// _, ok := aps[ap]
-			// _, okRev := aps[apRev]
-			// if !ok && !okRev {
 			s := slope{
 				dx: cell2.x - cell1.x,
 				dy: cell2.y - cell1.y,
 			}
-			// aps[ap] = s
 			_, ok1 := pairs[cell1]
 			_, ok2 := pairs[cell2]
 			if !ok1 {
@@ -167,7 +136,6 @@ func calcAntennaPairs(m1 []cell, m2 []cell) map[cell][]slope {
 			}
 			pairs[cell1] = append(pairs[cell1], s)
 			pairs[cell2] = append(pairs[cell1], s)
-			// }
 		}
 	}
 
@@ -188,14 +156,6 @@ func flatten2dSlice(s [][]cell) []cell {
 	return fs
 }
 
-// func apToSlopeToString(aps map[antennaPair]slope) string {
-// 	var export string
-// 	for ap, s := range aps {
-// 		export += fmt.Sprintf("[%d, %d],[%d,%d]: %d\n", ap.a1X, ap.a1Y, ap.a2X, ap.a2Y, s)
-// 	}
-// 	return export
-// }
-
 func getAllAntinodes(pairs map[cell][]slope, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
 	for c, slopes := range pairs {
@@ -209,18 +169,19 @@ func getAllAntinodes(pairs map[cell][]slope, m [][]cell) []cell {
 
 func validAntinodes(c cell, s slope, m [][]cell) []cell {
 	antinodes := make([]cell, 0)
-
-	doubleDx := s.dx * 2
-	doubleDy := s.dy * 2
-
-	inBounds1 := inBounds(c.x+doubleDx, c.y+doubleDy, m)
-	inBounds2 := inBounds(c.x-doubleDx, c.y-doubleDy, m)
+	rateOfChange := s.dy / s.dx * 2
+	newX := c.x + rateOfChange
+	newY := c.y + rateOfChange
+	newNegX := c.x - rateOfChange
+	newNegY := c.y - rateOfChange
+	inBounds1 := inBounds(newX, newY, m)
+	inBounds2 := inBounds(newNegX, newNegY, m)
 
 	if inBounds1 {
 		c1 := cell{
 			frequency:  '#',
-			x:          c.x + doubleDx,
-			y:          c.y + doubleDy,
+			x:          newX,
+			y:          newY,
 			isAntinode: true,
 		}
 		antinodes = append(antinodes, c1)
@@ -229,8 +190,8 @@ func validAntinodes(c cell, s slope, m [][]cell) []cell {
 	if inBounds2 {
 		c2 := cell{
 			frequency:  '#',
-			x:          c.x - doubleDx,
-			y:          c.y - doubleDy,
+			x:          newNegX,
+			y:          newNegY,
 			isAntinode: true,
 		}
 		antinodes = append(antinodes, c2)
@@ -250,4 +211,12 @@ func unique(cs []cell) map[cell]bool {
 // inBounds checks if a cell is within the maps's boundaries
 func inBounds(x, y int, m [][]cell) bool {
 	return x >= 0 && x < len(m) && y >= 0 && y < len(m[0])
+}
+
+func updateMapWithAntinodes(m [][]cell, antiNodes map[cell]bool) [][]cell {
+	for antinode := range antiNodes {
+		m[antinode.x][antinode.y].isAntinode = true
+		m[antinode.x][antinode.y].frequency = antinodeVal
+	}
+	return m
 }
