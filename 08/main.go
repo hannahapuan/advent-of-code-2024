@@ -36,6 +36,9 @@ func main() {
 
 	an := getAllAntinodes(pairs, m)
 	uan := unique(an)
+
+	mapWithAntinodes := updateMapWithAntinodes(m, uan)
+	fmt.Println(mapToString(mapWithAntinodes))
 	fmt.Println(len(uan))
 }
 
@@ -96,15 +99,8 @@ func readInput(fname string) ([][]cell, error) {
 
 // Converts the grid into a printable string representation
 func mapToString(s [][]cell) string {
-	export := "  "
-	for i := 0; i < len(s); i++ {
-		export += fmt.Sprintf("%d ", i)
-	}
-	export += "\n"
-	var y int
+	var export string
 	for _, row := range s {
-		export += fmt.Sprintf("%d ", y)
-		y++
 		for _, cell := range row {
 			export += fmt.Sprintf("%s ", string(cell.frequency))
 		}
