@@ -15,10 +15,19 @@ const (
 )
 
 type cell struct {
-	val       rune
-	x, y      int
-	isAntenna bool
+	val                   rune
+	x, y                  int
+	isAntenna, isAntinode bool
 	// matchingAntennas []cell
+}
+
+type antennaPair struct {
+	a1X, a1Y int
+	a2X, a2Y int
+}
+
+type slope struct {
+	dx, dy int
 }
 
 // type antennaPair struct {
@@ -31,9 +40,12 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
+	mf := flatten2dSlice(m)
+	aps := calcAntennaPairs(mf, mf)
 
 	fmt.Println(mapToString(m))
 	fmt.Println(atl)
+	fmt.Println(aps)
 
 }
 
@@ -110,3 +122,61 @@ func mapToString(s [][]cell) string {
 	}
 	return export
 }
+
+func calcAntennaPairs(m1 []cell, m2 []cell) map[antennaPair]slope {
+	aps := make(map[antennaPair]slope)
+
+	for _, cell1 := range m1 {
+		for _, cell2 := range m2 {
+			if isSameCell(cell1, cell2) || !cell1.isAntenna || !cell2.isAntenna || cell1.val != cell2.val {
+				continue
+			}
+			ap := antennaPair{
+				a1X: cell1.x,
+				a1Y: cell1.y,
+				a2X: cell2.x,
+				a2Y: cell2.y,
+			}
+			apRev := antennaPair{
+				a1X: cell2.x,
+				a1Y: cell2.y,
+				a2X: cell1.x,
+				a2Y: cell1.y,
+			}
+			_, ok := aps[ap]
+			_, okRev := aps[apRev]
+			if !ok && !okRev {
+				s := slope{
+					dx: cell2.x - cell1.x,
+					dy: cell2.y - cell1.y,
+				}
+				aps[ap] = s
+			}
+		}
+	}
+
+	return aps
+}
+
+func isSameCell(a, b cell) bool {
+	return a.x == b.x && a.y == b.y
+}
+
+func flatten2dSlice(s [][]cell) []cell {
+	fs := make([]cell, 0)
+
+	for _, row := range s {
+		for _, cell := range row {
+			fs = append(fs, cell)
+		}
+	}
+
+	return fs
+}
+
+// func apToSlopeToString(aps map[antennaPair]slope) string {
+// 	var export string
+// 	for ap, s := range aps {
+
+// 	}
+// }
