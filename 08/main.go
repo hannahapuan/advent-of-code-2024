@@ -9,7 +9,7 @@ import (
 
 // Constants for file input and map symbols
 const (
-	filename    string = "input.txt"   // Input file containing the grid
+	filename    string = "example.txt" // Input file containing the grid
 	openVal     rune   = '.'           // Open cell value
 	antinodeVal rune   = '#'           // Antinode marker
 	regex       string = "[a-zA-Z0-9]" // Regex for valid antenna characters
@@ -40,22 +40,25 @@ func main() {
 	// Calculate antenna pairs based on frequency and position
 	pairs := calcAntennaPairs(mf, mf)
 
-	// Print the initial grid with coordinates
-	fmt.Println(mapToString(m))
-
 	// Calculate and display antinodes without resonant harmonics
 	an := getAllAntinodes(pairs, m, false)
-	uan := unique(an)
-	mapWithAntinodes := updateMapWithAntinodes(m, uan)
-	fmt.Println(mapToString(mapWithAntinodes))
-	fmt.Println(len(uan))
+	mapWithAntinodes := updateMapWithAntinodes(m, an)
 
 	// Calculate and display antinodes with resonant harmonics
 	anrh := getAllAntinodes(pairs, m, true)
-	uanrh := unique(anrh)
-	mapWithAntinodesrh := updateMapWithAntinodes(m, uanrh)
+	mapWithAntinodesrh := updateMapWithAntinodes(m, anrh)
+
+	// Print all the things
+	fmt.Println("Initial Map\n")
+	fmt.Println(mapToString(m))
+	fmt.Println("\n----------------------------\n")
+	fmt.Println("Antinodes Map\n")
+	fmt.Println(mapToString(mapWithAntinodes))
+	fmt.Println("Antinodes Count: ", len(an))
+	fmt.Println("\n----------------------------\n")
+	fmt.Println("Antinodes Map with Resonance Harmonics\n")
 	fmt.Println(mapToString(mapWithAntinodesrh))
-	fmt.Println(len(uanrh))
+	fmt.Println("Antinodes Count with Resonance Harmonics: ", len(anrh))
 }
 
 // Reads the input file and converts it into a 2D grid of cells
@@ -174,7 +177,7 @@ func flatten2dSlice(s [][]cell) []cell {
 
 // Retrieves all valid antinodes
 // note that the last argument is a flag determining whether resonant harmonics should be calculated
-func getAllAntinodes(pairs map[cell][]change, m [][]cell, withResonantHarmonics bool) []cell {
+func getAllAntinodes(pairs map[cell][]change, m [][]cell, withResonantHarmonics bool) map[[2]int]bool {
 	antinodes := make([]cell, 0)
 	for c, changes := range pairs {
 		for _, sl := range changes {
@@ -187,7 +190,7 @@ func getAllAntinodes(pairs map[cell][]change, m [][]cell, withResonantHarmonics 
 			antinodes = append(antinodes, an...)
 		}
 	}
-	return antinodes
+	return unique(antinodes)
 }
 
 // Calculates valid antinodes without resonant harmonics

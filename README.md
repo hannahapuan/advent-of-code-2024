@@ -11,5 +11,6 @@ My solutions in Golang!
 - Day 08: ⭐⭐
 - Day 09: ❌
 - Day 10: ❌
+- Day 11: ❌
 
 ... the rest to come!
