@@ -10,7 +10,7 @@ import (
 // https://adventofcode.com/2024/day/9
 
 const (
-	filename     string = "example.txt"
+	filename     string = "input.txt"
 	freeSpaceVal int    = -1
 )
 
@@ -20,17 +20,18 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println(blocksToString(blocks))
+	// fmt.Println(blocksToString(blocks))
 
 	fmt.Println()
 	moved := true
+	finishedBlocks := append([]int{}, blocks...)
 	for moved {
 		blocks, moved = move(blocks)
-		fmt.Println(blocksToString(blocks))
-		fmt.Println()
+		// fmt.Println(blocksToString(blocks))
+		finishedBlocks = append([]int{}, blocks...)
 	}
-	fmt.Println("DONE")
-	fmt.Println(blocksToString(blocks))
+
+	fmt.Println("\nchecksum:", calcChecksum(finishedBlocks))
 }
 
 func readInput(fname string) ([]int, error) {
@@ -54,6 +55,10 @@ func readInput(fname string) ([]int, error) {
 			}
 			return nil, fmt.Errorf("error reading file: %w", err)
 		}
+		if lenFileRu == '\n' {
+			return ids, nil
+		}
+
 		var lenFile, lenFree int
 		lenFile, err = strconv.Atoi(string(lenFileRu))
 		if err != nil {
@@ -71,6 +76,9 @@ func readInput(fname string) ([]int, error) {
 				break
 			}
 			return nil, fmt.Errorf("error reading file: %w", err)
+		}
+		if lenFreeRu == '\n' {
+			return ids, nil
 		}
 
 		lenFree, err = strconv.Atoi(string(lenFreeRu))
@@ -114,14 +122,14 @@ func move(blocks []int) ([]int, bool) {
 
 	// all free space is after file space, finished
 	if fileIndex < freeIndex {
-		return nil, false
+		return blocks, false
 	}
 
 	return swap(blocksCopy, freeIndex, fileIndex), true
 }
 
 func getFirstFreeSpaceIndex(blocks []int) int {
-	for i := 0; i < len(blocks); i++ {
+	for i := range blocks {
 		if blocks[i] != freeSpaceVal {
 			continue
 		}
@@ -138,4 +146,15 @@ func getLastFileIndex(blocks []int) int {
 		return i
 	}
 	return -1
+}
+
+func calcChecksum(blocks []int) int {
+	var checksum int
+	for i, id := range blocks {
+		if id == -1 {
+			continue
+		}
+		checksum += i * id
+	}
+	return checksum
 }
