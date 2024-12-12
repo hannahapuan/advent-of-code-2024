@@ -7,6 +7,8 @@ import (
 	"regexp"
 )
 
+// https://adventofcode.com/2024/day/8
+
 // Constants for file input and map symbols
 const (
 	filename    string = "input.txt"   // Input file containing the grid
