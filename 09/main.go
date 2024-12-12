@@ -10,19 +10,9 @@ import (
 // https://adventofcode.com/2024/day/9
 
 const (
-	filename string = "example.txt"
+	filename     string = "example.txt"
+	freeSpaceVal int    = -1
 )
-
-type block struct {
-	isFile bool
-	fileID int // only set if it is not free
-	size   int
-}
-
-type fileBlock struct {
-	id  int
-	val int
-}
 
 func main() {
 	blocks, err := readInput(filename)
@@ -31,10 +21,19 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println(blocksToString(blocks))
+
+	fmt.Println()
+	moved := true
+	for moved {
+		blocks, moved = move(blocks)
+		fmt.Println(blocksToString(blocks))
+		fmt.Println()
+	}
+	fmt.Println("DONE")
+	fmt.Println(blocksToString(blocks))
 }
 
 func readInput(fname string) ([]int, error) {
-	// blocks := make([]block, 0)
 	ids := make([]int, 0)
 
 	file, err := os.Open(fname)
@@ -80,7 +79,7 @@ func readInput(fname string) ([]int, error) {
 		}
 
 		for i := 0; i < lenFree; i++ {
-			ids = append(ids, -1)
+			ids = append(ids, freeSpaceVal)
 		}
 
 	}
@@ -99,4 +98,44 @@ func blocksToString(bs []int) string {
 		export += fmt.Sprintf("%d", b)
 	}
 	return export
+}
+
+func swap(blocks []int, a, b int) []int {
+	blocks[a], blocks[b] = blocks[b], blocks[a]
+	return blocks
+}
+
+// returns updated blocks after move and if a move happened
+func move(blocks []int) ([]int, bool) {
+	blocksCopy := append([]int{}, blocks...)
+
+	freeIndex := getFirstFreeSpaceIndex(blocksCopy)
+	fileIndex := getLastFileIndex(blocks)
+
+	// all free space is after file space, finished
+	if fileIndex < freeIndex {
+		return nil, false
+	}
+
+	return swap(blocksCopy, freeIndex, fileIndex), true
+}
+
+func getFirstFreeSpaceIndex(blocks []int) int {
+	for i := 0; i < len(blocks); i++ {
+		if blocks[i] != freeSpaceVal {
+			continue
+		}
+		return i
+	}
+	return -1
+}
+
+func getLastFileIndex(blocks []int) int {
+	for i := len(blocks) - 1; i >= 0; i-- {
+		if blocks[i] == freeSpaceVal {
+			continue
+		}
+		return i
+	}
+	return -1
 }
