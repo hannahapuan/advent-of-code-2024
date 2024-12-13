@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof" // Profiling for performance debugging
 	"os"
 	"strconv"
 )
@@ -17,6 +20,11 @@ const (
 
 // Entry point for the program
 func main() {
+	// Start a goroutine to enable performance profiling via pprof
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	// Read and parse the input file into a slice of blocks
 	blocks, err := readInput(filename)
 	if err != nil {
@@ -28,37 +36,41 @@ func main() {
 	moved := true
 	finishedBlocks := append([]int{}, blocks...) // Copy of blocks for manipulation
 	for moved {
-		finishedBlocks, moved = move(finishedBlocks)        // Move blocks until no movement occurs
-		finishedBlocks = append([]int{}, finishedBlocks...) // Ensure copy consistency
+		// Move blocks until no movement occurs
+		finishedBlocks, moved = move(finishedBlocks)
+		// Create a new copy to avoid mutating the original
+		finishedBlocks = append([]int{}, finishedBlocks...)
 	}
-	fmt.Println("part 1 checksum:", calcChecksum(finishedBlocks))
+	fmt.Println("part 1 checksum:", calcChecksum(finishedBlocks)) // Calculate and print checksum for Part 1
 
 	// Part 2: Rearrange blocks and calculate checksum
 	idToSize := getIDToSize(blocks)              // Map block IDs to their sizes
 	fileEndIndices := getLastFileIndices(blocks) // Get indices of the last files
 	fsis := getFreeSpaceIndices(blocks)          // Get indices of free space
+
+	// Move entire blocks based on available free space
 	for _, fei := range fileEndIndices {
 		fmt.Printf(".")                                      // Progress indicator
-		blocks = moveWholeBlock(blocks, fsis, fei, idToSize) // Move entire blocks
+		blocks = moveWholeBlock(blocks, fsis, fei, idToSize) // Move the block
 	}
-	fmt.Println("finished!\n")
 
-	// Calculate checksum for Part 2
+	// Calculate and print checksum for Part 2
 	fmt.Println("part 2 checksum:", calcChecksum(blocks))
 }
 
 // Reads the input file and parses it into a slice of blocks
 func readInput(fname string) ([]int, error) {
-	ids := make([]int, 0)
+	ids := make([]int, 0) // Slice to store block IDs
 
+	// Open the input file
 	file, err := os.Open(fname)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file:  %w", err)
 	}
 	defer file.Close()
 
-	reader := bufio.NewReader(file)
-	var fileIDIdx int
+	reader := bufio.NewReader(file) // Reader for efficient file reading
+	var fileIDIdx int               // Counter for file IDs
 
 	for {
 		// Read one character (file length) at a time
@@ -69,7 +81,7 @@ func readInput(fname string) ([]int, error) {
 			}
 			return nil, fmt.Errorf("error reading file: %w", err)
 		}
-		if lenFileRu == '\n' {
+		if lenFileRu == '\n' { // End of a line
 			return ids, nil
 		}
 
@@ -94,7 +106,7 @@ func readInput(fname string) ([]int, error) {
 			}
 			return nil, fmt.Errorf("error reading file: %w", err)
 		}
-		if lenFreeRu == '\n' {
+		if lenFreeRu == '\n' { // End of a line
 			return ids, nil
 		}
 
@@ -111,15 +123,15 @@ func readInput(fname string) ([]int, error) {
 	return ids, nil
 }
 
-// Converts blocks to a string representation
+// Converts blocks to a string representation for debugging
 func blocksToString(bs []int) string {
 	var export string
 	for _, b := range bs {
-		if b == -1 {
-			export += "." // Free space
+		if b == freeSpaceVal {
+			export += "." // Represent free space with a dot
 			continue
 		}
-		export += fmt.Sprintf("%d", b) // File block
+		export += fmt.Sprintf("%d", b) // Represent file block with its ID
 	}
 	return export
 }
@@ -132,16 +144,18 @@ func swap(blocks []int, a, b int) []int {
 
 // Moves blocks to fill free spaces and returns updated blocks and movement status
 func move(blocks []int) ([]int, bool) {
-	blocksCopy := append([]int{}, blocks...)
+	blocksCopy := append([]int{}, blocks...) // Create a copy to avoid modifying input
 
+	// Find indices of the first free space and the last file
 	freeStartIndex := getFirstFreeSpaceIndex(blocksCopy)
 	fileIndex := getLastFileIndex(blocks)
 
-	// All free spaces are after file spaces, so no movement needed
+	// If all free spaces are after files, no movement needed
 	if fileIndex < freeStartIndex {
 		return blocks, false
 	}
 
+	// Swap the free space and file
 	return swap(blocksCopy, freeStartIndex, fileIndex), true
 }
 
@@ -150,38 +164,32 @@ func getIDToSize(blocks []int) map[int]int {
 	idToSizeMap := make(map[int]int)
 
 	for _, id := range blocks {
-		idToSizeMap[id]++
+		idToSizeMap[id]++ // Increment size for each block ID
 	}
 	return idToSizeMap
 }
 
+// Calculates the length of consecutive free blocks starting at a given index
+func getFreeBlockLength(blocks []int, fi int) int {
+	var freeLengthCount int
+	for fi < len(blocks) && blocks[fi] == freeSpaceVal {
+		freeLengthCount++
+		fi++
+	}
+	return freeLengthCount
+}
+
 // Moves an entire block to available free space
 func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) []int {
-	blocksCopy := append([]int{}, blocks...)
+	blocksCopy := append([]int{}, blocks...) // Create a copy of the blocks
 
 	for _, freeStartIndex := range freeStartIndices {
-		fi := freeStartIndex
-		var freeLengthCount int
-		var currBlock = -1
-		for {
-			currBlock = blocksCopy[fi]
-			fi++
-			if currBlock != freeSpaceVal || fi == len(blocksCopy) {
-				break
-			}
-			freeLengthCount++
-		}
+		freeLengthCount := getFreeBlockLength(blocksCopy, freeStartIndex) // Get free space length
+		lastFileSize := idToSize[blocks[lastFileIndex]]                   // Get size of the last file block
 
-		lastFileSize := idToSize[blocks[lastFileIndex]]
-
-		// Move block if sufficient free space is available
+		// Move block if there is enough free space and it's valid to move
 		if freeLengthCount >= lastFileSize && lastFileIndex > freeStartIndex {
-			mod := 0
-			for i := 0; i < lastFileSize; i++ {
-				blocksCopy = swap(blocksCopy, freeStartIndex+mod, lastFileIndex-mod)
-				mod++
-			}
-			return blocksCopy
+			blocksCopy = moveBlock(blocks, lastFileSize, lastFileIndex, freeStartIndex)
 		}
 	}
 	return blocksCopy
@@ -194,10 +202,18 @@ func getFirstFreeSpaceIndex(blocks []int) int {
 			return i
 		}
 	}
-	return -1
+	return -1 // No free space found
 }
 
-// Returns a slice of all free space indices
+// Moves a block from one position to another
+func moveBlock(blocks []int, lastFileSize, lastFileIndex, freeStartIndex int) []int {
+	for i := 0; i < lastFileSize; i++ {
+		blocks = swap(blocks, freeStartIndex+i, lastFileIndex-i)
+	}
+	return blocks
+}
+
+// Returns a slice of indices of all free spaces
 func getFreeSpaceIndices(blocks []int) []int {
 	freeSpaceIndices := make([]int, 0)
 	for i := range blocks {
@@ -208,36 +224,35 @@ func getFreeSpaceIndices(blocks []int) []int {
 	return freeSpaceIndices
 }
 
-// Returns a slice of indices of the last files in blocks
+// Returns a slice of indices of the last files in the blocks
 func getLastFileIndices(blocks []int) []int {
 	lastFileIndices := make([]int, 0)
 	var lastVal int
 	for i := len(blocks) - 1; i >= 0; i-- {
-		if blocks[i] == freeSpaceVal || lastVal == blocks[i] {
-			continue
+		if blocks[i] != freeSpaceVal && blocks[i] != lastVal {
+			lastFileIndices = append(lastFileIndices, i)
+			lastVal = blocks[i]
 		}
-		lastFileIndices = append(lastFileIndices, i)
-		lastVal = blocks[i]
 	}
 	return lastFileIndices
 }
 
-// Returns the index of the last file in blocks
+// Returns the index of the last file in the blocks
 func getLastFileIndex(blocks []int) int {
 	for i := len(blocks) - 1; i >= 0; i-- {
 		if blocks[i] != freeSpaceVal {
 			return i
 		}
 	}
-	return -1
+	return -1 // No file found
 }
 
-// Calculates a checksum based on the block indices and IDs
+// Calculates a checksum based on block indices and IDs
 func calcChecksum(blocks []int) int {
 	var checksum int
 	for i, id := range blocks {
 		if id != freeSpaceVal {
-			checksum += i * id
+			checksum += i * id // Multiply index and ID for checksum
 		}
 	}
 	return checksum
