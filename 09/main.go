@@ -50,7 +50,6 @@ func main() {
 
 	// Move entire blocks based on available free space
 	for _, fei := range fileEndIndices {
-		fmt.Printf(".")                                      // Progress indicator
 		blocks = moveWholeBlock(blocks, fsis, fei, idToSize) // Move the block
 	}
 
@@ -170,25 +169,31 @@ func getIDToSize(blocks []int) map[int]int {
 }
 
 // Calculates the length of consecutive free blocks starting at a given index
-func getFreeBlockLength(blocks []int, fi int) int {
+func getFreeBlockLengths(blocks []int) []int {
+	freeLengthCounts := make([]int, 0)
 	var freeLengthCount int
-	for fi < len(blocks) && blocks[fi] == freeSpaceVal {
+	for _, block := range blocks {
+		if block != freeSpaceVal {
+			freeLengthCount = 0
+			continue
+		}
 		freeLengthCount++
-		fi++
+		freeLengthCounts = append(freeLengthCounts, freeLengthCount)
 	}
-	return freeLengthCount
+	return freeLengthCounts
 }
 
 // Moves an entire block to available free space
 func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) []int {
 	blocksCopy := append([]int{}, blocks...) // Create a copy of the blocks
 
-	for _, freeStartIndex := range freeStartIndices {
-		freeLengthCount := getFreeBlockLength(blocksCopy, freeStartIndex) // Get free space length
-		lastFileSize := idToSize[blocks[lastFileIndex]]                   // Get size of the last file block
+	freeLengthCounts := getFreeBlockLengths(blocksCopy)
+	for i, freeStartIndex := range freeStartIndices {
+		// Get free space length
+		lastFileSize := idToSize[blocks[lastFileIndex]] // Get size of the last file block
 
 		// Move block if there is enough free space and it's valid to move
-		if freeLengthCount >= lastFileSize && lastFileIndex > freeStartIndex {
+		if freeLengthCounts[i] >= lastFileSize && lastFileIndex > freeStartIndex {
 			blocksCopy = moveBlock(blocks, lastFileSize, lastFileIndex, freeStartIndex)
 		}
 	}
