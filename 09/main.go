@@ -21,23 +21,31 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	// fmt.Println(blocksToString(blocks))
 
-	moved := true
-	finishedBlocks := append([]int{}, blocks...)
-	for moved {
-		blocks, moved = move(blocks)
-	}
-	fmt.Println("\npart 1 checksum:", calcChecksum(finishedBlocks))
+	idToSize := getIDToSize(blocks)
+	fmt.Println(idToSize)
+	fmt.Println()
+	// moved := true
+	// finishedBlocks := append([]int{}, blocks...)
+	// for moved {
+	// 	blocks, moved = move(blocks)
+	// 	// fmt.Println(blocksToString(blocks))
+	// 	finishedBlocks = append([]int{}, blocks...)
+	// }
 
 	// Part 2
 	fileEndIndices := getLastFileIndices(blocks)
-	idToSize := getIDToSize(blocks)
 	for _, fei := range fileEndIndices {
 		fsis := getFreeSpaceIndices(blocks)
-		blocks = moveWholeBlock(blocks, fsis, fei, idToSize)
+		blocks, _ = moveWholeBlock(blocks, fsis, fei, idToSize)
+		fmt.Println(blocksToString(blocks))
+
+		fmt.Println()
+		fmt.Println()
 	}
 
-	fmt.Println("\npart 2 checksum:", calcChecksum(blocks))
+	fmt.Println("\nchecksum:", calcChecksum(blocks))
 }
 
 func readInput(fname string) ([]int, error) {
@@ -115,6 +123,8 @@ func blocksToString(bs []int) string {
 }
 
 func swap(blocks []int, a, b int) []int {
+	fmt.Printf("\t\tswap(%d, %d) = [%d],[%d]\n", a, b, blocks[a], blocks[b])
+	fmt.Printf("\t\t\tbefore swap: %v\n", blocksToString(blocks))
 	blocks[a], blocks[b] = blocks[b], blocks[a]
 	return blocks
 }
@@ -123,15 +133,15 @@ func swap(blocks []int, a, b int) []int {
 func move(blocks []int) ([]int, bool) {
 	blocksCopy := append([]int{}, blocks...)
 
-	freeIndex := getFirstFreeSpaceIndex(blocksCopy)
+	freeStartIndex := getFirstFreeSpaceIndex(blocksCopy)
 	fileIndex := getLastFileIndex(blocks)
 
 	// all free space is after file space, finished
-	if fileIndex < freeIndex {
-		return nil, false
+	if fileIndex < freeStartIndex {
+		return blocks, false
 	}
 
-	return swap(blocksCopy, freeIndex, fileIndex), true
+	return swap(blocksCopy, freeStartIndex, fileIndex), true
 }
 
 func getIDToSize(blocks []int) map[int]int {
@@ -144,8 +154,9 @@ func getIDToSize(blocks []int) map[int]int {
 }
 
 // returns updated blocks after move and if a move happened
-func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) []int {
+func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) ([]int, bool) {
 	blocksCopy := append([]int{}, blocks...)
+	fmt.Println(blocksToString(blocksCopy))
 
 	for _, freeStartIndex := range freeStartIndices {
 		fi := freeStartIndex
@@ -162,16 +173,21 @@ func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idT
 
 		lastFileSize := idToSize[blocks[lastFileIndex]]
 
+		fmt.Println("freeStartIndex:", freeStartIndex, " freeLengthCount:", freeLengthCount)
+		fmt.Println("fileEndIndex:", lastFileIndex, " fileLengthCount:", lastFileSize, "fileID:", blocks[lastFileIndex])
+
 		if freeLengthCount >= lastFileSize && lastFileIndex > freeStartIndex {
+			fmt.Println("\twe can move it!")
 			mod := 0
 			for i := 0; i < lastFileSize; i++ {
 				blocksCopy = swap(blocksCopy, freeStartIndex+mod, lastFileIndex-mod)
+				fmt.Println("\t\t\tafter swap: ", blocksToString(blocksCopy))
 				mod++
 			}
-			return blocksCopy
+			return blocksCopy, true
 		}
 	}
-	return blocksCopy
+	return blocksCopy, false
 }
 
 func getFirstFreeSpaceIndex(blocks []int) int {
