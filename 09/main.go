@@ -21,31 +21,24 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	// fmt.Println(blocksToString(blocks))
 
-	idToSize := getIDToSize(blocks)
-	fmt.Println(idToSize)
-	fmt.Println()
-	// moved := true
-	// finishedBlocks := append([]int{}, blocks...)
-	// for moved {
-	// 	blocks, moved = move(blocks)
-	// 	// fmt.Println(blocksToString(blocks))
-	// 	finishedBlocks = append([]int{}, blocks...)
-	// }
+	moved := true
+	finishedBlocks := append([]int{}, blocks...)
+	for moved {
+		finishedBlocks, moved = move(finishedBlocks)
+		finishedBlocks = append([]int{}, finishedBlocks...)
+	}
+	fmt.Println("part 1 checksum:", calcChecksum(finishedBlocks))
 
 	// Part 2
+	idToSize := getIDToSize(blocks)
 	fileEndIndices := getLastFileIndices(blocks)
 	for _, fei := range fileEndIndices {
 		fsis := getFreeSpaceIndices(blocks)
 		blocks, _ = moveWholeBlock(blocks, fsis, fei, idToSize)
-		fmt.Println(blocksToString(blocks))
-
-		fmt.Println()
-		fmt.Println()
 	}
 
-	fmt.Println("\nchecksum:", calcChecksum(blocks))
+	fmt.Println("part 2 checksum:", calcChecksum(blocks))
 }
 
 func readInput(fname string) ([]int, error) {
@@ -123,8 +116,6 @@ func blocksToString(bs []int) string {
 }
 
 func swap(blocks []int, a, b int) []int {
-	fmt.Printf("\t\tswap(%d, %d) = [%d],[%d]\n", a, b, blocks[a], blocks[b])
-	fmt.Printf("\t\t\tbefore swap: %v\n", blocksToString(blocks))
 	blocks[a], blocks[b] = blocks[b], blocks[a]
 	return blocks
 }
@@ -156,7 +147,6 @@ func getIDToSize(blocks []int) map[int]int {
 // returns updated blocks after move and if a move happened
 func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) ([]int, bool) {
 	blocksCopy := append([]int{}, blocks...)
-	fmt.Println(blocksToString(blocksCopy))
 
 	for _, freeStartIndex := range freeStartIndices {
 		fi := freeStartIndex
@@ -173,15 +163,10 @@ func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idT
 
 		lastFileSize := idToSize[blocks[lastFileIndex]]
 
-		fmt.Println("freeStartIndex:", freeStartIndex, " freeLengthCount:", freeLengthCount)
-		fmt.Println("fileEndIndex:", lastFileIndex, " fileLengthCount:", lastFileSize, "fileID:", blocks[lastFileIndex])
-
 		if freeLengthCount >= lastFileSize && lastFileIndex > freeStartIndex {
-			fmt.Println("\twe can move it!")
 			mod := 0
 			for i := 0; i < lastFileSize; i++ {
 				blocksCopy = swap(blocksCopy, freeStartIndex+mod, lastFileIndex-mod)
-				fmt.Println("\t\t\tafter swap: ", blocksToString(blocksCopy))
 				mod++
 			}
 			return blocksCopy, true
