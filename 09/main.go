@@ -3,9 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
-	"net/http"
-	_ "net/http/pprof" // Profiling for performance debugging
 	"os"
 	"strconv"
 )
@@ -20,11 +17,6 @@ const (
 
 // Entry point for the program
 func main() {
-	// Start a goroutine to enable performance profiling via pprof
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	// Read and parse the input file into a slice of blocks
 	blocks, err := readInput(filename)
 	if err != nil {
@@ -172,6 +164,7 @@ func getIDToSize(blocks []int) map[int]int {
 func getFreeBlockLengths(blocks []int) []int {
 	freeLengthCounts := make([]int, 0)
 	var freeLengthCount int
+
 	for _, block := range blocks {
 		if block != freeSpaceVal {
 			freeLengthCount = 0
