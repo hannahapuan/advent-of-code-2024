@@ -11,7 +11,7 @@ import (
 // https://adventofcode.com/2024/day/9
 
 const (
-	filename     string = "example.txt"
+	filename     string = "input.txt"
 	freeSpaceVal int    = -1
 )
 
@@ -33,10 +33,12 @@ func main() {
 	// Part 2
 	idToSize := getIDToSize(blocks)
 	fileEndIndices := getLastFileIndices(blocks)
+	fsis := getFreeSpaceIndices(blocks)
 	for _, fei := range fileEndIndices {
-		fsis := getFreeSpaceIndices(blocks)
-		blocks, _ = moveWholeBlock(blocks, fsis, fei, idToSize)
+		fmt.Printf(".")
+		blocks = moveWholeBlock(blocks, fsis, fei, idToSize)
 	}
+	fmt.Println("finished!\n")
 
 	fmt.Println("part 2 checksum:", calcChecksum(blocks))
 }
@@ -145,7 +147,7 @@ func getIDToSize(blocks []int) map[int]int {
 }
 
 // returns updated blocks after move and if a move happened
-func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) ([]int, bool) {
+func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idToSize map[int]int) []int {
 	blocksCopy := append([]int{}, blocks...)
 
 	for _, freeStartIndex := range freeStartIndices {
@@ -169,10 +171,10 @@ func moveWholeBlock(blocks []int, freeStartIndices []int, lastFileIndex int, idT
 				blocksCopy = swap(blocksCopy, freeStartIndex+mod, lastFileIndex-mod)
 				mod++
 			}
-			return blocksCopy, true
+			return blocksCopy
 		}
 	}
-	return blocksCopy, false
+	return blocksCopy
 }
 
 func getFirstFreeSpaceIndex(blocks []int) int {
