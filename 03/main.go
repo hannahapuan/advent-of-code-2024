@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// Advent of Code 2024 - Day 3: Challenge
 // https://adventofcode.com/2024/day/3
 
 const (

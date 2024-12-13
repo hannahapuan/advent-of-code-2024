@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Advent of Code 2024 - Day 2: Challenge
 // https://adventofcode.com/2024/day/2
 
 // Constants

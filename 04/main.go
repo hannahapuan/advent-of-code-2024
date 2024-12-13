@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// Advent of Code 2024 - Day 4: Challenge
 // https://adventofcode.com/2024/day/4
 
 // Constants for input filename and solutions to find

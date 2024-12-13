@@ -7,6 +7,7 @@ import (
 	"regexp"
 )
 
+// Advent of Code 2024 - Day 8: Challenge
 // https://adventofcode.com/2024/day/8
 
 // Constants for file input and map symbols

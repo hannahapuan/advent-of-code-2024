@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"runtime/pprof"
 	"strconv"
 )
 
@@ -23,6 +25,17 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	f, err := os.Create("profile.pf")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer f.Close()
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatal("could not start CPU profile: ", err)
+	}
+	defer pprof.StopCPUProfile()
 
 	// Part 1: Move blocks and calculate checksum
 	moved := true

@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// Advent of Code 2024 - Day 6: Challenge
 // https://adventofcode.com/2024/day/6
 
 const (
